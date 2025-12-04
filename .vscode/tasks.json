@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run ClinicManager",
+			"type": "shell",
+			"command": "java",
+			"args": [
+				"-cp",
+				"bin",
+				"clinicmanager.gui.MainFrame"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
