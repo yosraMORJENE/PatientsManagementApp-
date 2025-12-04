@@ -1,0 +1,5 @@
+# Workspace artifacts
+.vscode/
+
+# Build output
+bin/
