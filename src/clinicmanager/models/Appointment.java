@@ -39,6 +39,9 @@ public class Appointment {
         this.appointmentDate = appointmentDate;
     }
 
+
+
+    
     public String getReason() {
         return reason;
     }

@@ -13,6 +13,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -79,6 +82,405 @@ public class MainFrame extends JFrame {
         super.dispose();
     }
 
+    // Helper method to create date picker with calendar dialog
+    private JPanel createDatePicker() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setPreferredSize(new Dimension(180, 25));
+        
+        JTextField dateField = new JTextField();
+        dateField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        dateField.setEditable(false);
+        dateField.setBackground(Color.WHITE);
+        
+        // Set default date
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        dateField.setText(sdf.format(new Date()));
+        
+        // Store reference to text field in panel for easy retrieval
+        panel.putClientProperty("dateField", dateField);
+        
+        JButton calendarBtn = new JButton("📅");
+        calendarBtn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        calendarBtn.setPreferredSize(new Dimension(30, 25));
+        calendarBtn.setFocusPainted(false);
+        calendarBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        calendarBtn.addActionListener(e -> showDatePickerDialog(dateField));
+        
+        // Make text field clickable
+        dateField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showDatePickerDialog(dateField);
+            }
+        });
+        
+        panel.add(dateField, BorderLayout.CENTER);
+        panel.add(calendarBtn, BorderLayout.EAST);
+        
+        return panel;
+    }
+    
+    // Helper method to create date and time picker with dialogs
+    private JPanel createDateTimePicker() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setPreferredSize(new Dimension(220, 25));
+        
+        JTextField dateTimeField = new JTextField();
+        dateTimeField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        dateTimeField.setEditable(false);
+        dateTimeField.setBackground(Color.WHITE);
+        
+        // Set default date and time
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        dateTimeField.setText(sdf.format(new Date()));
+        
+        // Store reference to text field in panel for easy retrieval
+        panel.putClientProperty("dateTimeField", dateTimeField);
+        
+        JButton pickerBtn = new JButton("📅");
+        pickerBtn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        pickerBtn.setPreferredSize(new Dimension(30, 25));
+        pickerBtn.setFocusPainted(false);
+        pickerBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        pickerBtn.addActionListener(e -> showDateTimePickerDialog(dateTimeField));
+        
+        // Make text field clickable
+        dateTimeField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showDateTimePickerDialog(dateTimeField);
+            }
+        });
+        
+        panel.add(dateTimeField, BorderLayout.CENTER);
+        panel.add(pickerBtn, BorderLayout.EAST);
+        
+        return panel;
+    }
+    
+    // Show date picker dialog
+    private void showDatePickerDialog(JTextField dateField) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(dateField), "Select Date", true);
+        dialog.setSize(300, 350);
+        dialog.setLocationRelativeTo(dateField);
+        
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Calendar panel
+        JPanel calendarPanel = new JPanel(new GridLayout(7, 7));
+        calendarPanel.setBorder(BorderFactory.createTitledBorder("Select Date"));
+        
+        Calendar cal = Calendar.getInstance();
+        String currentDate = dateField.getText();
+        if (currentDate != null && !currentDate.trim().isEmpty()) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                cal.setTime(sdf.parse(currentDate));
+            } catch (Exception e) {
+                // Use current date if parsing fails
+            }
+        }
+        
+        final Calendar selectedCal = (Calendar) cal.clone();
+        
+        // Month/Year selector
+        JPanel monthYearPanel = new JPanel(new FlowLayout());
+        JButton prevMonth = new JButton("◀");
+        JLabel monthYearLabel = new JLabel();
+        JButton nextMonth = new JButton("▶");
+        
+        updateMonthYearLabel(monthYearLabel, selectedCal);
+        
+        prevMonth.addActionListener(e -> {
+            selectedCal.add(Calendar.MONTH, -1);
+            updateMonthYearLabel(monthYearLabel, selectedCal);
+            updateCalendar(calendarPanel, selectedCal, dialog, dateField);
+        });
+        
+        nextMonth.addActionListener(e -> {
+            selectedCal.add(Calendar.MONTH, 1);
+            updateMonthYearLabel(monthYearLabel, selectedCal);
+            updateCalendar(calendarPanel, selectedCal, dialog, dateField);
+        });
+        
+        monthYearPanel.add(prevMonth);
+        monthYearPanel.add(monthYearLabel);
+        monthYearPanel.add(nextMonth);
+        
+        // Day labels
+        String[] dayNames = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+        for (String day : dayNames) {
+            JLabel label = new JLabel(day, JLabel.CENTER);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            calendarPanel.add(label);
+        }
+        
+        updateCalendar(calendarPanel, selectedCal, dialog, dateField);
+        
+        panel.add(monthYearPanel, BorderLayout.NORTH);
+        panel.add(calendarPanel, BorderLayout.CENTER);
+        
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+    
+    private void updateMonthYearLabel(JLabel label, Calendar cal) {
+        SimpleDateFormat sdf = new SimpleDateFormat("MMMM yyyy");
+        label.setText(sdf.format(cal.getTime()));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    }
+    
+    private void updateCalendar(JPanel calendarPanel, Calendar cal, JDialog dialog, JTextField dateField) {
+        // Remove existing day buttons (keep day labels)
+        Component[] components = calendarPanel.getComponents();
+        for (int i = 7; i < components.length; i++) {
+            calendarPanel.remove(components[i]);
+        }
+        
+        Calendar tempCal = (Calendar) cal.clone();
+        tempCal.set(Calendar.DAY_OF_MONTH, 1);
+        int firstDayOfWeek = tempCal.get(Calendar.DAY_OF_WEEK) - 1;
+        int daysInMonth = tempCal.getActualMaximum(Calendar.DAY_OF_MONTH);
+        
+        // Add empty cells for days before month starts
+        for (int i = 0; i < firstDayOfWeek; i++) {
+            calendarPanel.add(new JLabel(""));
+        }
+        
+        // Add day buttons
+        for (int day = 1; day <= daysInMonth; day++) {
+            JButton dayBtn = new JButton(String.valueOf(day));
+            dayBtn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            dayBtn.setPreferredSize(new Dimension(35, 30));
+            
+            tempCal.set(Calendar.DAY_OF_MONTH, day);
+            final Calendar selectedDate = (Calendar) tempCal.clone();
+            
+            dayBtn.addActionListener(e -> {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                dateField.setText(sdf.format(selectedDate.getTime()));
+                dialog.dispose();
+            });
+            
+            calendarPanel.add(dayBtn);
+        }
+        
+        calendarPanel.revalidate();
+        calendarPanel.repaint();
+    }
+    
+    // Show date and time picker dialog
+    private void showDateTimePickerDialog(JTextField dateTimeField) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(dateTimeField), "Select Date & Time", true);
+        dialog.setSize(350, 450);
+        dialog.setLocationRelativeTo(dateTimeField);
+        
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Date picker panel
+        JPanel datePanel = new JPanel(new BorderLayout());
+        datePanel.setBorder(BorderFactory.createTitledBorder("Select Date"));
+        
+        JTextField dateField = new JTextField();
+        dateField.setEditable(false);
+        dateField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        dateField.setBackground(Color.WHITE);
+        
+        JButton dateBtn = new JButton("📅");
+        dateBtn.addActionListener(e -> {
+            showDatePickerDialog(dateField);
+        });
+        
+        dateField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showDatePickerDialog(dateField);
+            }
+        });
+        
+        JPanel dateInputPanel = new JPanel(new BorderLayout());
+        dateInputPanel.add(dateField, BorderLayout.CENTER);
+        dateInputPanel.add(dateBtn, BorderLayout.EAST);
+        datePanel.add(dateInputPanel, BorderLayout.NORTH);
+        
+        // Time picker panel
+        JPanel timePanel = new JPanel(new GridBagLayout());
+        timePanel.setBorder(BorderFactory.createTitledBorder("Select Time"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        
+        // Parse existing date/time if available
+        String currentDateTime = dateTimeField.getText();
+        Calendar cal = Calendar.getInstance();
+        int defaultHour = cal.get(Calendar.HOUR_OF_DAY);
+        int defaultMinute = cal.get(Calendar.MINUTE);
+        String defaultDate = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
+        
+        if (currentDateTime != null && !currentDateTime.trim().isEmpty()) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                Date dt = sdf.parse(currentDateTime.trim());
+                cal.setTime(dt);
+                defaultHour = cal.get(Calendar.HOUR_OF_DAY);
+                defaultMinute = cal.get(Calendar.MINUTE);
+                defaultDate = new SimpleDateFormat("yyyy-MM-dd").format(dt);
+            } catch (Exception e) {
+                // Use defaults if parsing fails
+            }
+        }
+        
+        dateField.setText(defaultDate);
+        
+        SpinnerNumberModel hourModel = new SpinnerNumberModel(defaultHour, 0, 23, 1);
+        SpinnerNumberModel minuteModel = new SpinnerNumberModel(defaultMinute, 0, 59, 1);
+        
+        JSpinner hourSpinner = new JSpinner(hourModel);
+        JSpinner minuteSpinner = new JSpinner(minuteModel);
+        
+        hourSpinner.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        minuteSpinner.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        hourSpinner.setPreferredSize(new Dimension(60, 30));
+        minuteSpinner.setPreferredSize(new Dimension(60, 30));
+        
+        timePanel.add(new JLabel("Hour:"), gbc);
+        gbc.gridx = 1;
+        timePanel.add(hourSpinner, gbc);
+        gbc.gridx = 2;
+        timePanel.add(new JLabel(":"), gbc);
+        gbc.gridx = 3;
+        timePanel.add(new JLabel("Minute:"), gbc);
+        gbc.gridx = 4;
+        timePanel.add(minuteSpinner, gbc);
+        
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton okBtn = createModernButton("OK", new Color(34, 139, 34), new Color(50, 160, 50), 80, 30);
+        JButton cancelBtn = createModernButton("Cancel", new Color(128, 128, 128), new Color(150, 150, 150), 80, 30);
+        
+        okBtn.addActionListener(e -> {
+            String dateStr = dateField.getText();
+            if (dateStr != null && !dateStr.trim().isEmpty()) {
+                int hour = (Integer) hourSpinner.getValue();
+                int minute = (Integer) minuteSpinner.getValue();
+                String timeStr = String.format("%02d:%02d", hour, minute);
+                dateTimeField.setText(dateStr + " " + timeStr);
+            }
+            dialog.dispose();
+        });
+        
+        cancelBtn.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(okBtn);
+        buttonPanel.add(cancelBtn);
+        
+        mainPanel.add(datePanel, BorderLayout.NORTH);
+        mainPanel.add(timePanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        dialog.add(mainPanel);
+        dialog.setVisible(true);
+    }
+    
+    // Helper method to get date string from date picker panel
+    private String getDateString(JPanel datePickerPanel) {
+        // First try to get from client property
+        Object field = datePickerPanel.getClientProperty("dateField");
+        if (field instanceof JTextField) {
+            return ((JTextField) field).getText();
+        }
+        
+        // Fallback: search components
+        Component[] components = datePickerPanel.getComponents();
+        for (Component comp : components) {
+            if (comp instanceof JTextField) {
+                return ((JTextField) comp).getText();
+            }
+        }
+        return "";
+    }
+    
+    // Helper method to get date-time string from date-time picker panel
+    private String getDateTimeString(JPanel dateTimePickerPanel) {
+        // First try to get from client property
+        Object field = dateTimePickerPanel.getClientProperty("dateTimeField");
+        if (field instanceof JTextField) {
+            return ((JTextField) field).getText();
+        }
+        
+        // Fallback: search components
+        Component[] components = dateTimePickerPanel.getComponents();
+        for (Component comp : components) {
+            if (comp instanceof JTextField) {
+                return ((JTextField) comp).getText();
+            }
+        }
+        return "";
+    }
+    
+    // Helper method to set date picker from string
+    private void setDateFromString(JPanel datePickerPanel, String dateString) {
+        // First try to get from client property
+        Object field = datePickerPanel.getClientProperty("dateField");
+        if (field instanceof JTextField) {
+            JTextField textField = (JTextField) field;
+            if (dateString != null && !dateString.trim().isEmpty()) {
+                textField.setText(dateString);
+            } else {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                textField.setText(sdf.format(new Date()));
+            }
+            return;
+        }
+        
+        // Fallback: search components
+        Component[] components = datePickerPanel.getComponents();
+        for (Component comp : components) {
+            if (comp instanceof JTextField) {
+                JTextField textField = (JTextField) comp;
+                if (dateString != null && !dateString.trim().isEmpty()) {
+                    textField.setText(dateString);
+                } else {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    textField.setText(sdf.format(new Date()));
+                }
+                return;
+            }
+        }
+    }
+    
+    // Helper method to set date-time picker from string
+    private void setDateTimeFromString(JPanel dateTimePickerPanel, String dateTimeString) {
+        // First try to get from client property
+        Object field = dateTimePickerPanel.getClientProperty("dateTimeField");
+        if (field instanceof JTextField) {
+            JTextField textField = (JTextField) field;
+            if (dateTimeString != null && !dateTimeString.trim().isEmpty()) {
+                textField.setText(dateTimeString);
+            } else {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                textField.setText(sdf.format(new Date()));
+            }
+            return;
+        }
+        
+        // Fallback: search components
+        Component[] components = dateTimePickerPanel.getComponents();
+        for (Component comp : components) {
+            if (comp instanceof JTextField) {
+                JTextField textField = (JTextField) comp;
+                if (dateTimeString != null && !dateTimeString.trim().isEmpty()) {
+                    textField.setText(dateTimeString);
+                } else {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                    textField.setText(sdf.format(new Date()));
+                }
+                return;
+            }
+        }
+    }
+
     // Helper method to create modern styled buttons
     private JButton createModernButton(String text, Color bgColor, Color hoverColor, int width, int height) {
         JButton button = new JButton(text) {
@@ -133,7 +535,8 @@ public class MainFrame extends JFrame {
         private final PatientDAO patientDAO;
         private JTable patientTable;
         private DefaultTableModel tableModel;
-        private JTextField firstNameField, lastNameField, dobField, phoneField, emailField, addressField;
+        private JTextField firstNameField, lastNameField, phoneField, emailField, addressField;
+        private JPanel dobField;
         private JTextField searchField;
         private JButton saveButton, updateButton, deleteButton, clearButton, searchButton, refreshButton;
         private int selectedPatientId = -1;
@@ -192,9 +595,8 @@ public class MainFrame extends JFrame {
 
             // Date of Birth
             gbc.gridx = 0; gbc.gridy = 2;
-            panel.add(new JLabel("Date of Birth (YYYY-MM-DD):"), gbc);
-            dobField = new JTextField(20);
-            dobField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            panel.add(new JLabel("Date of Birth:"), gbc);
+            dobField = createDatePicker();
             gbc.gridx = 1;
             panel.add(dobField, gbc);
 
@@ -312,8 +714,9 @@ public class MainFrame extends JFrame {
         }
 
         private void savePatient() {
+            String dobString = getDateString(dobField);
             String error = ValidationUtil.validatePatientForm(
-                firstNameField.getText(), lastNameField.getText(), dobField.getText(),
+                firstNameField.getText(), lastNameField.getText(), dobString,
                 phoneField.getText(), emailField.getText(), addressField.getText());
             
             if (error != null) {
@@ -325,7 +728,7 @@ public class MainFrame extends JFrame {
                 Patient patient = new Patient(0,
                     firstNameField.getText().trim(),
                     lastNameField.getText().trim(),
-                    dobField.getText().trim(),
+                    dobString,
                     phoneField.getText().trim(),
                     emailField.getText().trim(),
                     addressField.getText().trim());
@@ -345,8 +748,9 @@ public class MainFrame extends JFrame {
                 return;
             }
 
+            String dobString = getDateString(dobField);
             String error = ValidationUtil.validatePatientForm(
-                firstNameField.getText(), lastNameField.getText(), dobField.getText(),
+                firstNameField.getText(), lastNameField.getText(), dobString,
                 phoneField.getText(), emailField.getText(), addressField.getText());
             
             if (error != null) {
@@ -363,7 +767,7 @@ public class MainFrame extends JFrame {
                     Patient patient = new Patient(selectedPatientId,
                         firstNameField.getText().trim(),
                         lastNameField.getText().trim(),
-                        dobField.getText().trim(),
+                        dobString,
                         phoneField.getText().trim(),
                         emailField.getText().trim(),
                         addressField.getText().trim());
@@ -404,7 +808,7 @@ public class MainFrame extends JFrame {
             selectedPatientId = -1;
             firstNameField.setText("");
             lastNameField.setText("");
-            dobField.setText("");
+            setDateFromString(dobField, new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
             phoneField.setText("");
             emailField.setText("");
             addressField.setText("");
@@ -417,7 +821,7 @@ public class MainFrame extends JFrame {
                 selectedPatientId = (Integer) tableModel.getValueAt(row, 0);
                 firstNameField.setText((String) tableModel.getValueAt(row, 1));
                 lastNameField.setText((String) tableModel.getValueAt(row, 2));
-                dobField.setText((String) tableModel.getValueAt(row, 3));
+                setDateFromString(dobField, (String) tableModel.getValueAt(row, 3));
                 phoneField.setText((String) tableModel.getValueAt(row, 4));
                 emailField.setText((String) tableModel.getValueAt(row, 5));
                 addressField.setText((String) tableModel.getValueAt(row, 6));
@@ -481,7 +885,8 @@ public class MainFrame extends JFrame {
         private JTable appointmentTable;
         private DefaultTableModel tableModel;
         private JComboBox<PatientComboItem> patientCombo;
-        private JTextField dateField, reasonField;
+        private JPanel dateField;
+        private JTextField reasonField;
         private JButton saveButton, updateButton, deleteButton, clearButton, refreshButton;
         private int selectedAppointmentId = -1;
 
@@ -527,9 +932,8 @@ public class MainFrame extends JFrame {
 
             // Appointment Date
             gbc.gridx = 0; gbc.gridy = 1;
-            panel.add(new JLabel("Date & Time (YYYY-MM-DD HH:MM) *:"), gbc);
-            dateField = new JTextField(20);
-            dateField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            panel.add(new JLabel("Date & Time *:"), gbc);
+            dateField = createDateTimePicker();
             gbc.gridx = 1;
             panel.add(dateField, gbc);
 
@@ -631,14 +1035,15 @@ public class MainFrame extends JFrame {
                 return;
             }
 
-            if (!ValidationUtil.isNotEmpty(dateField.getText())) {
+            String dateTimeString = getDateTimeString(dateField);
+            if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Appointment date is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             try {
                 // Check for conflicts
-                if (appointmentDAO.hasConflict(dateField.getText().trim())) {
+                if (appointmentDAO.hasConflict(dateTimeString)) {
                     int confirm = JOptionPane.showConfirmDialog(this, 
                         "Another appointment exists at this time. Do you want to schedule anyway?",
                         "Conflict Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
@@ -649,7 +1054,7 @@ public class MainFrame extends JFrame {
 
                 Appointment appointment = new Appointment(0,
                     selected.getId(),
-                    dateField.getText().trim(),
+                    dateTimeString,
                     reasonField.getText().trim());
                 
                 appointmentDAO.addAppointment(appointment);
@@ -674,7 +1079,8 @@ public class MainFrame extends JFrame {
                 return;
             }
 
-            if (!ValidationUtil.isNotEmpty(dateField.getText())) {
+            String dateTimeString = getDateTimeString(dateField);
+            if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Appointment date is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
@@ -687,7 +1093,7 @@ public class MainFrame extends JFrame {
                 try {
                     Appointment appointment = new Appointment(selectedAppointmentId,
                         selected.getId(),
-                        dateField.getText().trim(),
+                        dateTimeString,
                         reasonField.getText().trim());
                     
                     appointmentDAO.updateAppointment(appointment);
@@ -727,7 +1133,7 @@ public class MainFrame extends JFrame {
         private void clearForm() {
             selectedAppointmentId = -1;
             patientCombo.setSelectedIndex(0);
-            dateField.setText("");
+            setDateTimeFromString(dateField, new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date()));
             reasonField.setText("");
             appointmentTable.clearSelection();
         }
@@ -747,7 +1153,7 @@ public class MainFrame extends JFrame {
                     }
                 }
                 
-                dateField.setText((String) tableModel.getValueAt(row, 3));
+                setDateTimeFromString(dateField, (String) tableModel.getValueAt(row, 3));
                 reasonField.setText((String) tableModel.getValueAt(row, 4));
             }
         }
@@ -809,7 +1215,7 @@ public class MainFrame extends JFrame {
         private JTable visitTable;
         private DefaultTableModel tableModel;
         private JComboBox<AppointmentComboItem> appointmentCombo;
-        private JTextField dateField;
+        private JPanel dateField;
         private JTextArea notesArea;
         private JButton saveButton, updateButton, deleteButton, clearButton, refreshButton;
         private int selectedVisitId = -1;
@@ -857,9 +1263,8 @@ public class MainFrame extends JFrame {
 
             // Visit Date
             gbc.gridx = 0; gbc.gridy = 1;
-            panel.add(new JLabel("Visit Date (YYYY-MM-DD) *:"), gbc);
-            dateField = new JTextField(20);
-            dateField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            panel.add(new JLabel("Visit Date *:"), gbc);
+            dateField = createDatePicker();
             gbc.gridx = 1;
             panel.add(dateField, gbc);
 
@@ -972,7 +1377,8 @@ public class MainFrame extends JFrame {
                 return;
             }
 
-            if (!ValidationUtil.isNotEmpty(dateField.getText())) {
+            String dateString = getDateString(dateField);
+            if (dateString == null || dateString.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Visit date is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
@@ -980,7 +1386,7 @@ public class MainFrame extends JFrame {
             try {
                 Visit visit = new Visit(0,
                     selected.getId(),
-                    dateField.getText().trim(),
+                    dateString,
                     notesArea.getText().trim());
                 
                 visitDAO.addVisit(visit);
@@ -1005,7 +1411,8 @@ public class MainFrame extends JFrame {
                 return;
             }
 
-            if (!ValidationUtil.isNotEmpty(dateField.getText())) {
+            String dateString = getDateString(dateField);
+            if (dateString == null || dateString.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Visit date is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
@@ -1018,7 +1425,7 @@ public class MainFrame extends JFrame {
                 try {
                     Visit visit = new Visit(selectedVisitId,
                         selected.getId(),
-                        dateField.getText().trim(),
+                        dateString,
                         notesArea.getText().trim());
                     
                     visitDAO.updateVisit(visit);
@@ -1058,7 +1465,7 @@ public class MainFrame extends JFrame {
         private void clearForm() {
             selectedVisitId = -1;
             appointmentCombo.setSelectedIndex(0);
-            dateField.setText("");
+            setDateFromString(dateField, new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
             notesArea.setText("");
             visitTable.clearSelection();
         }
@@ -1078,7 +1485,7 @@ public class MainFrame extends JFrame {
                     }
                 }
                 
-                dateField.setText((String) tableModel.getValueAt(row, 3));
+                setDateFromString(dateField, (String) tableModel.getValueAt(row, 3));
                 notesArea.setText((String) tableModel.getValueAt(row, 4));
             }
         }
