@@ -160,7 +160,15 @@ public class MainFrame extends JFrame {
     
     // Show date picker dialog
     private void showDatePickerDialog(JTextField dateField) {
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(dateField), "Select Date", true);
+        Frame parentFrame = null;
+        try {
+            parentFrame = (Frame) SwingUtilities.getWindowAncestor(dateField);
+        } catch (Exception e) {
+            // If we can't find a window ancestor, try to find the current frame
+            parentFrame = null;
+        }
+        
+        JDialog dialog = new JDialog(parentFrame, "Select Date", true);
         dialog.setSize(300, 350);
         dialog.setLocationRelativeTo(dateField);
         
@@ -288,6 +296,29 @@ public class MainFrame extends JFrame {
         dateField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         dateField.setBackground(Color.WHITE);
         
+        // Parse existing date/time if available
+        String currentDateTime = dateTimeField.getText();
+        Calendar cal = Calendar.getInstance();
+        int defaultHour = cal.get(Calendar.HOUR_OF_DAY);
+        int defaultMinute = cal.get(Calendar.MINUTE);
+        String defaultDate = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
+        
+        if (currentDateTime != null && !currentDateTime.trim().isEmpty()) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                Date dt = sdf.parse(currentDateTime.trim());
+                cal.setTime(dt);
+                defaultHour = cal.get(Calendar.HOUR_OF_DAY);
+                defaultMinute = cal.get(Calendar.MINUTE);
+                defaultDate = new SimpleDateFormat("yyyy-MM-dd").format(dt);
+            } catch (Exception e) {
+                // Use defaults if parsing fails
+            }
+        }
+        
+        // Initialize dateField with default date
+        dateField.setText(defaultDate);
+        
         JButton dateBtn = new JButton("📅");
         dateBtn.addActionListener(e -> {
             showDatePickerDialog(dateField);
@@ -310,28 +341,6 @@ public class MainFrame extends JFrame {
         timePanel.setBorder(BorderFactory.createTitledBorder("Select Time"));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
-        
-        // Parse existing date/time if available
-        String currentDateTime = dateTimeField.getText();
-        Calendar cal = Calendar.getInstance();
-        int defaultHour = cal.get(Calendar.HOUR_OF_DAY);
-        int defaultMinute = cal.get(Calendar.MINUTE);
-        String defaultDate = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
-        
-        if (currentDateTime != null && !currentDateTime.trim().isEmpty()) {
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                Date dt = sdf.parse(currentDateTime.trim());
-                cal.setTime(dt);
-                defaultHour = cal.get(Calendar.HOUR_OF_DAY);
-                defaultMinute = cal.get(Calendar.MINUTE);
-                defaultDate = new SimpleDateFormat("yyyy-MM-dd").format(dt);
-            } catch (Exception e) {
-                // Use defaults if parsing fails
-            }
-        }
-        
-        dateField.setText(defaultDate);
         
         SpinnerNumberModel hourModel = new SpinnerNumberModel(defaultHour, 0, 23, 1);
         SpinnerNumberModel minuteModel = new SpinnerNumberModel(defaultMinute, 0, 59, 1);
