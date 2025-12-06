@@ -9,10 +9,13 @@ import clinicmanager.models.Patient;
 import clinicmanager.models.Visit;
 import clinicmanager.util.ValidationUtil;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
 public class MainFrame extends JFrame {
@@ -74,6 +77,55 @@ public class MainFrame extends JFrame {
         } catch (SQLException e) {
         }
         super.dispose();
+    }
+
+    // Helper method to create modern styled buttons
+    private JButton createModernButton(String text, Color bgColor, Color hoverColor, int width, int height) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                Color currentBg = getModel().isPressed() ? bgColor.darker() : 
+                                  getModel().isRollover() ? hoverColor : bgColor;
+                
+                // Draw rounded rectangle background
+                g2.setColor(currentBg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                
+                // Draw border
+                g2.setColor(currentBg.darker());
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(width, height));
+        button.setBorder(new EmptyBorder(0, 0, 0, 0));
+        button.setContentAreaFilled(false);
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Add hover effect
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.repaint();
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.repaint();
+            }
+        });
+        
+        return button;
     }
 
     // Patient Panel
@@ -186,16 +238,13 @@ public class MainFrame extends JFrame {
             searchField = new JTextField(25);
             searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             searchPanel.add(searchField);
-            searchButton = new JButton("Search");
-            searchButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            searchButton.setBackground(new Color(0, 102, 204));
-            searchButton.setForeground(Color.WHITE);
+            searchButton = createModernButton("Search", 
+                new Color(0, 102, 204), new Color(0, 120, 240), 100, 30);
             searchButton.addActionListener(e -> searchPatients());
             searchPanel.add(searchButton);
-            refreshButton = new JButton("Refresh");
-            refreshButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            refreshButton.setBackground(new Color(34, 139, 34));
-            refreshButton.setForeground(Color.WHITE);
+            
+            refreshButton = createModernButton("Refresh", 
+                new Color(34, 139, 34), new Color(50, 160, 50), 100, 30);
             refreshButton.addActionListener(e -> refreshTable());
             searchPanel.add(refreshButton);
             panel.add(searchPanel, BorderLayout.NORTH);
@@ -235,35 +284,23 @@ public class MainFrame extends JFrame {
         }
 
         private JPanel createButtonPanel() {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
             panel.setBackground(new Color(245, 250, 255));
 
-            saveButton = new JButton("Save New Patient");
-            saveButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            saveButton.setBackground(new Color(34, 139, 34));
-            saveButton.setForeground(Color.WHITE);
-            saveButton.setPreferredSize(new Dimension(150, 35));
+            saveButton = createModernButton("Save New Patient", 
+                new Color(34, 139, 34), new Color(50, 160, 50), 160, 40);
             saveButton.addActionListener(e -> savePatient());
 
-            updateButton = new JButton("Update Patient");
-            updateButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            updateButton.setBackground(new Color(0, 102, 204));
-            updateButton.setForeground(Color.WHITE);
-            updateButton.setPreferredSize(new Dimension(150, 35));
+            updateButton = createModernButton("Update Patient", 
+                new Color(0, 102, 204), new Color(0, 120, 240), 160, 40);
             updateButton.addActionListener(e -> updatePatient());
 
-            deleteButton = new JButton("Delete Patient");
-            deleteButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            deleteButton.setBackground(new Color(220, 20, 60));
-            deleteButton.setForeground(Color.WHITE);
-            deleteButton.setPreferredSize(new Dimension(150, 35));
+            deleteButton = createModernButton("Delete Patient", 
+                new Color(220, 20, 60), new Color(240, 40, 80), 160, 40);
             deleteButton.addActionListener(e -> deletePatient());
 
-            clearButton = new JButton("Clear Form");
-            clearButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            clearButton.setBackground(new Color(128, 128, 128));
-            clearButton.setForeground(Color.WHITE);
-            clearButton.setPreferredSize(new Dimension(150, 35));
+            clearButton = createModernButton("Clear Form", 
+                new Color(128, 128, 128), new Color(150, 150, 150), 160, 40);
             clearButton.addActionListener(e -> clearForm());
 
             panel.add(saveButton);
@@ -514,10 +551,8 @@ public class MainFrame extends JFrame {
                 javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
                 new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
 
-            refreshButton = new JButton("Refresh");
-            refreshButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            refreshButton.setBackground(new Color(34, 139, 34));
-            refreshButton.setForeground(Color.WHITE);
+            refreshButton = createModernButton("Refresh", 
+                new Color(34, 139, 34), new Color(50, 160, 50), 100, 30);
             refreshButton.addActionListener(e -> refreshTable());
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             buttonPanel.add(refreshButton);
@@ -548,35 +583,23 @@ public class MainFrame extends JFrame {
         }
 
         private JPanel createButtonPanel() {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
             panel.setBackground(new Color(245, 250, 255));
 
-            saveButton = new JButton("Schedule Appointment");
-            saveButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            saveButton.setBackground(new Color(34, 139, 34));
-            saveButton.setForeground(Color.WHITE);
-            saveButton.setPreferredSize(new Dimension(180, 35));
+            saveButton = createModernButton("Schedule Appointment", 
+                new Color(34, 139, 34), new Color(50, 160, 50), 180, 40);
             saveButton.addActionListener(e -> saveAppointment());
 
-            updateButton = new JButton("Update Appointment");
-            updateButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            updateButton.setBackground(new Color(0, 102, 204));
-            updateButton.setForeground(Color.WHITE);
-            updateButton.setPreferredSize(new Dimension(180, 35));
+            updateButton = createModernButton("Update Appointment", 
+                new Color(0, 102, 204), new Color(0, 120, 240), 180, 40);
             updateButton.addActionListener(e -> updateAppointment());
 
-            deleteButton = new JButton("Cancel Appointment");
-            deleteButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            deleteButton.setBackground(new Color(220, 20, 60));
-            deleteButton.setForeground(Color.WHITE);
-            deleteButton.setPreferredSize(new Dimension(180, 35));
+            deleteButton = createModernButton("Cancel Appointment", 
+                new Color(220, 20, 60), new Color(240, 40, 80), 180, 40);
             deleteButton.addActionListener(e -> deleteAppointment());
 
-            clearButton = new JButton("Clear Form");
-            clearButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            clearButton.setBackground(new Color(128, 128, 128));
-            clearButton.setForeground(Color.WHITE);
-            clearButton.setPreferredSize(new Dimension(180, 35));
+            clearButton = createModernButton("Clear Form", 
+                new Color(128, 128, 128), new Color(150, 150, 150), 180, 40);
             clearButton.addActionListener(e -> clearForm());
 
             panel.add(saveButton);
@@ -861,10 +884,8 @@ public class MainFrame extends JFrame {
                 javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
                 new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
 
-            refreshButton = new JButton("Refresh");
-            refreshButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            refreshButton.setBackground(new Color(34, 139, 34));
-            refreshButton.setForeground(Color.WHITE);
+            refreshButton = createModernButton("Refresh", 
+                new Color(34, 139, 34), new Color(50, 160, 50), 100, 30);
             refreshButton.addActionListener(e -> refreshTable());
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             buttonPanel.add(refreshButton);
@@ -896,35 +917,23 @@ public class MainFrame extends JFrame {
         }
 
         private JPanel createButtonPanel() {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
             panel.setBackground(new Color(245, 250, 255));
 
-            saveButton = new JButton("Record Visit");
-            saveButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            saveButton.setBackground(new Color(34, 139, 34));
-            saveButton.setForeground(Color.WHITE);
-            saveButton.setPreferredSize(new Dimension(150, 35));
+            saveButton = createModernButton("Record Visit", 
+                new Color(34, 139, 34), new Color(50, 160, 50), 160, 40);
             saveButton.addActionListener(e -> saveVisit());
 
-            updateButton = new JButton("Update Visit");
-            updateButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            updateButton.setBackground(new Color(0, 102, 204));
-            updateButton.setForeground(Color.WHITE);
-            updateButton.setPreferredSize(new Dimension(150, 35));
+            updateButton = createModernButton("Update Visit", 
+                new Color(0, 102, 204), new Color(0, 120, 240), 160, 40);
             updateButton.addActionListener(e -> updateVisit());
 
-            deleteButton = new JButton("Delete Visit");
-            deleteButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            deleteButton.setBackground(new Color(220, 20, 60));
-            deleteButton.setForeground(Color.WHITE);
-            deleteButton.setPreferredSize(new Dimension(150, 35));
+            deleteButton = createModernButton("Delete Visit", 
+                new Color(220, 20, 60), new Color(240, 40, 80), 160, 40);
             deleteButton.addActionListener(e -> deleteVisit());
 
-            clearButton = new JButton("Clear Form");
-            clearButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            clearButton.setBackground(new Color(128, 128, 128));
-            clearButton.setForeground(Color.WHITE);
-            clearButton.setPreferredSize(new Dimension(150, 35));
+            clearButton = createModernButton("Clear Form", 
+                new Color(128, 128, 128), new Color(150, 150, 150), 160, 40);
             clearButton.addActionListener(e -> clearForm());
 
             panel.add(saveButton);
