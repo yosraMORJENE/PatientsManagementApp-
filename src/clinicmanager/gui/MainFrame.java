@@ -3,11 +3,16 @@ package clinicmanager.gui;
 import clinicmanager.dao.AppointmentDAO;
 import clinicmanager.dao.PatientDAO;
 import clinicmanager.dao.VisitDAO;
+import clinicmanager.dao.MedicalConditionDAO;
+import clinicmanager.dao.AllergyDAO;
+import clinicmanager.dao.MedicationDAO;
+import clinicmanager.dao.PrescriptionDAO;
 import clinicmanager.database.DatabaseConnection;
 import clinicmanager.models.Appointment;
 import clinicmanager.models.Patient;
 import clinicmanager.models.Visit;
 import clinicmanager.util.ValidationUtil;
+import clinicmanager.util.DatePickerPanel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -25,6 +30,10 @@ public class MainFrame extends JFrame {
     private PatientDAO patientDAO;
     private AppointmentDAO appointmentDAO;
     private VisitDAO visitDAO;
+    private MedicalConditionDAO medicalConditionDAO;
+    private AllergyDAO allergyDAO;
+    private MedicationDAO medicationDAO;
+    private PrescriptionDAO prescriptionDAO;
     private Connection connection;
 
     public MainFrame() {
@@ -33,6 +42,10 @@ public class MainFrame extends JFrame {
             patientDAO = new PatientDAO(connection);
             appointmentDAO = new AppointmentDAO(connection);
             visitDAO = new VisitDAO(connection);
+            medicalConditionDAO = new MedicalConditionDAO(connection);
+            allergyDAO = new AllergyDAO(connection);
+            medicationDAO = new MedicationDAO(connection);
+            prescriptionDAO = new PrescriptionDAO(connection);
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, 
                 "Database connection error: " + e.getMessage(), 
@@ -59,7 +72,7 @@ public class MainFrame extends JFrame {
         // Add tabs
         tabbedPane.addTab("Patients", new PatientPanel(patientDAO));
         tabbedPane.addTab("Appointments", new AppointmentPanel(appointmentDAO, patientDAO));
-        tabbedPane.addTab("Visits", new VisitPanel(visitDAO, appointmentDAO, patientDAO));
+        tabbedPane.addTab("Medical History", new MedicalHistoryPanel(patientDAO, medicalConditionDAO, allergyDAO, medicationDAO));
 
         // Add tabbed pane to frame
         add(tabbedPane, BorderLayout.CENTER);
@@ -164,118 +177,34 @@ public class MainFrame extends JFrame {
         try {
             parentFrame = (Frame) SwingUtilities.getWindowAncestor(dateField);
         } catch (Exception e) {
-            // If we can't find a window ancestor, try to find the current frame
             parentFrame = null;
         }
         
         JDialog dialog = new JDialog(parentFrame, "Select Date", true);
-        dialog.setSize(300, 350);
+        dialog.setSize(420, 480);
         dialog.setLocationRelativeTo(dateField);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Calendar panel
-        JPanel calendarPanel = new JPanel(new GridLayout(7, 7));
-        calendarPanel.setBorder(BorderFactory.createTitledBorder("Select Date"));
-        
-        Calendar cal = Calendar.getInstance();
+        // Parse current date
+        java.util.Date selectedDate = new java.util.Date();
         String currentDate = dateField.getText();
         if (currentDate != null && !currentDate.trim().isEmpty()) {
             try {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                cal.setTime(sdf.parse(currentDate));
+                selectedDate = sdf.parse(currentDate);
             } catch (Exception e) {
                 // Use current date if parsing fails
             }
         }
         
-        final Calendar selectedCal = (Calendar) cal.clone();
-        
-        // Month/Year selector
-        JPanel monthYearPanel = new JPanel(new FlowLayout());
-        JButton prevMonth = new JButton("◀");
-        JLabel monthYearLabel = new JLabel();
-        JButton nextMonth = new JButton("▶");
-        
-        updateMonthYearLabel(monthYearLabel, selectedCal);
-        
-        prevMonth.addActionListener(e -> {
-            selectedCal.add(Calendar.MONTH, -1);
-            updateMonthYearLabel(monthYearLabel, selectedCal);
-            updateCalendar(calendarPanel, selectedCal, dialog, dateField);
+        // Create date picker panel with modern design
+        DatePickerPanel datePickerPanel = new DatePickerPanel(selectedDate, date -> {
+            dateField.setText(date);
+            dialog.dispose();
         });
         
-        nextMonth.addActionListener(e -> {
-            selectedCal.add(Calendar.MONTH, 1);
-            updateMonthYearLabel(monthYearLabel, selectedCal);
-            updateCalendar(calendarPanel, selectedCal, dialog, dateField);
-        });
-        
-        monthYearPanel.add(prevMonth);
-        monthYearPanel.add(monthYearLabel);
-        monthYearPanel.add(nextMonth);
-        
-        // Day labels
-        String[] dayNames = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-        for (String day : dayNames) {
-            JLabel label = new JLabel(day, JLabel.CENTER);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            calendarPanel.add(label);
-        }
-        
-        updateCalendar(calendarPanel, selectedCal, dialog, dateField);
-        
-        panel.add(monthYearPanel, BorderLayout.NORTH);
-        panel.add(calendarPanel, BorderLayout.CENTER);
-        
-        dialog.add(panel);
+        dialog.add(datePickerPanel, BorderLayout.CENTER);
         dialog.setVisible(true);
-    }
-    
-    private void updateMonthYearLabel(JLabel label, Calendar cal) {
-        SimpleDateFormat sdf = new SimpleDateFormat("MMMM yyyy");
-        label.setText(sdf.format(cal.getTime()));
-        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
-    }
-    
-    private void updateCalendar(JPanel calendarPanel, Calendar cal, JDialog dialog, JTextField dateField) {
-        // Remove existing day buttons (keep day labels)
-        Component[] components = calendarPanel.getComponents();
-        for (int i = 7; i < components.length; i++) {
-            calendarPanel.remove(components[i]);
-        }
-        
-        Calendar tempCal = (Calendar) cal.clone();
-        tempCal.set(Calendar.DAY_OF_MONTH, 1);
-        int firstDayOfWeek = tempCal.get(Calendar.DAY_OF_WEEK) - 1;
-        int daysInMonth = tempCal.getActualMaximum(Calendar.DAY_OF_MONTH);
-        
-        // Add empty cells for days before month starts
-        for (int i = 0; i < firstDayOfWeek; i++) {
-            calendarPanel.add(new JLabel(""));
-        }
-        
-        // Add day buttons
-        for (int day = 1; day <= daysInMonth; day++) {
-            JButton dayBtn = new JButton(String.valueOf(day));
-            dayBtn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            dayBtn.setPreferredSize(new Dimension(35, 30));
-            
-            tempCal.set(Calendar.DAY_OF_MONTH, day);
-            final Calendar selectedDate = (Calendar) tempCal.clone();
-            
-            dayBtn.addActionListener(e -> {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                dateField.setText(sdf.format(selectedDate.getTime()));
-                dialog.dispose();
-            });
-            
-            calendarPanel.add(dayBtn);
-        }
-        
-        calendarPanel.revalidate();
-        calendarPanel.repaint();
     }
     
     // Show date and time picker dialog
@@ -896,6 +825,7 @@ public class MainFrame extends JFrame {
         private JComboBox<PatientComboItem> patientCombo;
         private JPanel dateField;
         private JTextField reasonField;
+        private JComboBox<String> statusCombo;
         private JButton saveButton, updateButton, deleteButton, clearButton, refreshButton;
         private int selectedAppointmentId = -1;
 
@@ -935,9 +865,17 @@ public class MainFrame extends JFrame {
             panel.add(new JLabel("Patient *:"), gbc);
             patientCombo = new JComboBox<>();
             patientCombo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            patientCombo.setPreferredSize(new Dimension(300, 25));
+            patientCombo.setPreferredSize(new Dimension(250, 25));
             gbc.gridx = 1;
             panel.add(patientCombo, gbc);
+            
+            // Refresh patients button
+            JButton refreshPatientsBtn = new JButton("↻");
+            refreshPatientsBtn.setPreferredSize(new Dimension(35, 25));
+            refreshPatientsBtn.setToolTipText("Refresh patient list");
+            refreshPatientsBtn.addActionListener(e -> loadPatients());
+            gbc.gridx = 2;
+            panel.add(refreshPatientsBtn, gbc);
 
             // Appointment Date
             gbc.gridx = 0; gbc.gridy = 1;
@@ -953,6 +891,15 @@ public class MainFrame extends JFrame {
             reasonField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             gbc.gridx = 1;
             panel.add(reasonField, gbc);
+            
+            // Status
+            gbc.gridx = 0; gbc.gridy = 3;
+            panel.add(new JLabel("Status *:"), gbc);
+            statusCombo = new JComboBox<>(new String[]{"scheduled", "completed", "missed", "cancelled"});
+            statusCombo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            statusCombo.setPreferredSize(new Dimension(250, 25));
+            gbc.gridx = 1;
+            panel.add(statusCombo, gbc);
 
             return panel;
         }
@@ -971,7 +918,7 @@ public class MainFrame extends JFrame {
             buttonPanel.add(refreshButton);
             panel.add(buttonPanel, BorderLayout.NORTH);
 
-            String[] columns = {"ID", "Patient ID", "Patient Name", "Date & Time", "Reason"};
+            String[] columns = {"ID", "Patient ID", "Patient Name", "Date & Time", "Reason", "Status"};
             tableModel = new DefaultTableModel(columns, 0) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
@@ -1064,7 +1011,10 @@ public class MainFrame extends JFrame {
                 Appointment appointment = new Appointment(0,
                     selected.getId(),
                     dateTimeString,
-                    reasonField.getText().trim());
+                    reasonField.getText().trim(),
+                    (String) statusCombo.getSelectedItem(),
+                    null,
+                    null);
                 
                 appointmentDAO.addAppointment(appointment);
                 JOptionPane.showMessageDialog(this, "Appointment scheduled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -1103,7 +1053,10 @@ public class MainFrame extends JFrame {
                     Appointment appointment = new Appointment(selectedAppointmentId,
                         selected.getId(),
                         dateTimeString,
-                        reasonField.getText().trim());
+                        reasonField.getText().trim(),
+                        (String) statusCombo.getSelectedItem(),
+                        null,
+                        null);
                     
                     appointmentDAO.updateAppointment(appointment);
                     JOptionPane.showMessageDialog(this, "Appointment updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -1144,6 +1097,7 @@ public class MainFrame extends JFrame {
             patientCombo.setSelectedIndex(0);
             setDateTimeFromString(dateField, new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date()));
             reasonField.setText("");
+            statusCombo.setSelectedIndex(0);
             appointmentTable.clearSelection();
         }
 
@@ -1164,6 +1118,10 @@ public class MainFrame extends JFrame {
                 
                 setDateTimeFromString(dateField, (String) tableModel.getValueAt(row, 3));
                 reasonField.setText((String) tableModel.getValueAt(row, 4));
+                String status = (String) tableModel.getValueAt(row, 5);
+                if (status != null) {
+                    statusCombo.setSelectedItem(status);
+                }
             }
         }
 
@@ -1180,7 +1138,8 @@ public class MainFrame extends JFrame {
                             appointment.getPatientId(),
                             patientName,
                             appointment.getAppointmentDate(),
-                            appointment.getReason()
+                            appointment.getReason(),
+                            appointment.getStatus()
                         });
                     } catch (SQLException e) {
                         tableModel.addRow(new Object[]{
@@ -1188,7 +1147,8 @@ public class MainFrame extends JFrame {
                             appointment.getPatientId(),
                             "Error loading",
                             appointment.getAppointmentDate(),
-                            appointment.getReason()
+                            appointment.getReason(),
+                            appointment.getStatus()
                         });
                     }
                 }
@@ -1216,328 +1176,413 @@ public class MainFrame extends JFrame {
         }
     }
 
-    // Visit Panel
-    class VisitPanel extends JPanel {
-        private final VisitDAO visitDAO;
-        private final AppointmentDAO appointmentDAO;
+    // Medical History Panel - Full Implementation with Input Forms
+    class MedicalHistoryPanel extends JPanel {
         private final PatientDAO patientDAO;
-        private JTable visitTable;
-        private DefaultTableModel tableModel;
-        private JComboBox<AppointmentComboItem> appointmentCombo;
-        private JPanel dateField;
-        private JTextArea notesArea;
-        private JButton saveButton, updateButton, deleteButton, clearButton, refreshButton;
-        private int selectedVisitId = -1;
+        private final MedicalConditionDAO medicalConditionDAO;
+        private final AllergyDAO allergyDAO;
+        private final MedicationDAO medicationDAO;
+        private JComboBox<PatientComboItem> patientCombo;
+        private JTabbedPane historyTabs;
+        private int selectedPatientId = -1;
 
-        public VisitPanel(VisitDAO visitDAO, AppointmentDAO appointmentDAO, PatientDAO patientDAO) {
-            this.visitDAO = visitDAO;
-            this.appointmentDAO = appointmentDAO;
+        public MedicalHistoryPanel(PatientDAO patientDAO, MedicalConditionDAO medicalConditionDAO, 
+                                  AllergyDAO allergyDAO, MedicationDAO medicationDAO) {
             this.patientDAO = patientDAO;
+            this.medicalConditionDAO = medicalConditionDAO;
+            this.allergyDAO = allergyDAO;
+            this.medicationDAO = medicationDAO;
+            
             setLayout(new BorderLayout(10, 10));
             setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
             setBackground(new Color(245, 250, 255));
 
-            JPanel formPanel = createFormPanel();
-            JPanel tablePanel = createTablePanel();
-            JPanel buttonPanel = createButtonPanel();
-
-            add(formPanel, BorderLayout.NORTH);
-            add(tablePanel, BorderLayout.CENTER);
-            add(buttonPanel, BorderLayout.SOUTH);
-
-            refreshTable();
-            loadAppointments();
+            // Patient selector
+            JPanel patientPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            patientPanel.add(new JLabel("Select Patient:"));
+            patientCombo = new JComboBox<>();
+            patientCombo.setPreferredSize(new Dimension(250, 25));
+            patientCombo.addActionListener(e -> {
+                PatientComboItem selected = (PatientComboItem) patientCombo.getSelectedItem();
+                if (selected != null) {
+                    selectedPatientId = selected.getId();
+                    loadMedicalHistory();
+                }
+            });
+            patientPanel.add(patientCombo);
+            
+            JButton refreshPatientsBtn = new JButton("↻");
+            refreshPatientsBtn.setPreferredSize(new Dimension(35, 25));
+            refreshPatientsBtn.setToolTipText("Refresh patient list");
+            refreshPatientsBtn.addActionListener(e -> loadPatients());
+            patientPanel.add(refreshPatientsBtn);
+            
+            // History tabs with input forms
+            historyTabs = new JTabbedPane();
+            historyTabs.addTab("Medical Conditions", new JPanel());
+            historyTabs.addTab("Allergies", new JPanel());
+            historyTabs.addTab("Medications", new JPanel());
+            
+            add(patientPanel, BorderLayout.NORTH);
+            add(historyTabs, BorderLayout.CENTER);
+            
+            loadPatients();
         }
 
-        private JPanel createFormPanel() {
-            JPanel panel = new JPanel(new GridBagLayout());
-            panel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(), "Visit Information",
-                javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
-                new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
-            panel.setBackground(Color.WHITE);
+        private void loadPatients() {
+            try {
+                patientCombo.removeAllItems();
+                patientCombo.addItem(new PatientComboItem(-1, "Select a patient..."));
+                for (Patient p : patientDAO.getAllPatients()) {
+                    patientCombo.addItem(new PatientComboItem(p.getId(), p.getFirstName() + " " + p.getLastName()));
+                }
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error loading patients: " + e.getMessage());
+            }
+        }
 
+        private void loadMedicalHistory() {
+            if (selectedPatientId == -1) return;
+            try {
+                historyTabs.setComponentAt(0, createConditionsPanel());
+                historyTabs.setComponentAt(1, createAllergiesPanel());
+                historyTabs.setComponentAt(2, createMedicationsPanel());
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error loading medical history: " + e.getMessage());
+            }
+        }
+
+        private JPanel createConditionsPanel() throws SQLException {
+            JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+            mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+            // Input form
+            JPanel formPanel = new JPanel(new GridBagLayout());
+            formPanel.setBorder(BorderFactory.createTitledBorder("Add Medical Condition"));
+            formPanel.setBackground(Color.WHITE);
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(5, 5, 5, 5);
             gbc.anchor = GridBagConstraints.WEST;
 
-            // Appointment Selection
-            gbc.gridx = 0; gbc.gridy = 0;
-            panel.add(new JLabel("Appointment *:"), gbc);
-            appointmentCombo = new JComboBox<>();
-            appointmentCombo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            appointmentCombo.setPreferredSize(new Dimension(300, 25));
-            gbc.gridx = 1;
-            panel.add(appointmentCombo, gbc);
-
-            // Visit Date
-            gbc.gridx = 0; gbc.gridy = 1;
-            panel.add(new JLabel("Visit Date *:"), gbc);
-            dateField = createDatePicker();
-            gbc.gridx = 1;
-            panel.add(dateField, gbc);
-
-            // Notes
-            gbc.gridx = 0; gbc.gridy = 2;
-            panel.add(new JLabel("Notes:"), gbc);
-            notesArea = new JTextArea(4, 30);
-            notesArea.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            JTextField conditionField = new JTextField(20);
+            JTextField dateField = new JTextField(20);
+            JComboBox<String> statusCombo = new JComboBox<>(new String[]{"active", "resolved", "inactive"});
+            JTextArea notesArea = new JTextArea(3, 20);
             notesArea.setLineWrap(true);
             notesArea.setWrapStyleWord(true);
-            JScrollPane notesScroll = new JScrollPane(notesArea);
+
+            gbc.gridx = 0; gbc.gridy = 0;
+            formPanel.add(new JLabel("Condition Name *:"), gbc);
             gbc.gridx = 1;
-            panel.add(notesScroll, gbc);
+            formPanel.add(conditionField, gbc);
 
-            return panel;
-        }
+            gbc.gridx = 0; gbc.gridy = 1;
+            formPanel.add(new JLabel("Diagnosis Date (yyyy-MM-dd):"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(dateField, gbc);
 
-        private JPanel createTablePanel() {
-            JPanel panel = new JPanel(new BorderLayout());
-            panel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(), "Visit History",
-                javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
-                new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
+            gbc.gridx = 0; gbc.gridy = 2;
+            formPanel.add(new JLabel("Status:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(statusCombo, gbc);
 
-            refreshButton = createModernButton("Refresh", 
-                new Color(34, 139, 34), new Color(50, 160, 50), 100, 30);
-            refreshButton.addActionListener(e -> refreshTable());
-            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-            buttonPanel.add(refreshButton);
-            panel.add(buttonPanel, BorderLayout.NORTH);
+            gbc.gridx = 0; gbc.gridy = 3;
+            gbc.anchor = GridBagConstraints.NORTHWEST;
+            formPanel.add(new JLabel("Notes:"), gbc);
+            gbc.gridx = 1;
+            gbc.fill = GridBagConstraints.BOTH;
+            formPanel.add(new JScrollPane(notesArea), gbc);
 
-            String[] columns = {"ID", "Appointment ID", "Patient", "Visit Date", "Notes"};
-            tableModel = new DefaultTableModel(columns, 0) {
-                @Override
-                public boolean isCellEditable(int row, int column) {
-                    return false;
+            JButton addBtn = createModernButton("Add Condition", new Color(34, 139, 34), new Color(50, 160, 50), 120, 30);
+            gbc.gridx = 0; gbc.gridy = 4;
+            gbc.gridwidth = 2;
+            gbc.fill = GridBagConstraints.NONE;
+            gbc.anchor = GridBagConstraints.CENTER;
+            formPanel.add(addBtn, gbc);
+
+            // Display panel
+            JPanel displayPanel = new JPanel(new BorderLayout());
+            displayPanel.setBorder(BorderFactory.createTitledBorder("Medical Conditions History"));
+            JTextArea displayArea = new JTextArea(12, 50);
+            displayArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
+            displayArea.setEditable(false);
+            displayPanel.add(new JScrollPane(displayArea), BorderLayout.CENTER);
+
+            addBtn.addActionListener(e -> {
+                if (conditionField.getText().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please enter a condition name");
+                    return;
                 }
-            };
-            visitTable = new JTable(tableModel);
-            visitTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            visitTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-            visitTable.setRowHeight(25);
-            visitTable.getColumnModel().getColumn(4).setPreferredWidth(300);
-            visitTable.getSelectionModel().addListSelectionListener(e -> {
-                if (!e.getValueIsAdjusting()) {
-                    loadSelectedVisit();
+                try {
+                    clinicmanager.models.MedicalCondition cond = new clinicmanager.models.MedicalCondition(
+                        0, selectedPatientId, conditionField.getText(), dateField.getText(),
+                        (String) statusCombo.getSelectedItem(), notesArea.getText()
+                    );
+                    medicalConditionDAO.addCondition(cond);
+                    JOptionPane.showMessageDialog(this, "Condition added successfully!");
+                    conditionField.setText("");
+                    dateField.setText("");
+                    notesArea.setText("");
+                    loadMedicalHistory();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
                 }
             });
 
-            JScrollPane scrollPane = new JScrollPane(visitTable);
-            scrollPane.setPreferredSize(new Dimension(0, 300));
-            panel.add(scrollPane, BorderLayout.CENTER);
-
-            return panel;
-        }
-
-        private JPanel createButtonPanel() {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-            panel.setBackground(new Color(245, 250, 255));
-
-            saveButton = createModernButton("Record Visit", 
-                new Color(34, 139, 34), new Color(50, 160, 50), 160, 40);
-            saveButton.addActionListener(e -> saveVisit());
-
-            updateButton = createModernButton("Update Visit", 
-                new Color(0, 102, 204), new Color(0, 120, 240), 160, 40);
-            updateButton.addActionListener(e -> updateVisit());
-
-            deleteButton = createModernButton("Delete Visit", 
-                new Color(220, 20, 60), new Color(240, 40, 80), 160, 40);
-            deleteButton.addActionListener(e -> deleteVisit());
-
-            clearButton = createModernButton("Clear Form", 
-                new Color(128, 128, 128), new Color(150, 150, 150), 160, 40);
-            clearButton.addActionListener(e -> clearForm());
-
-            panel.add(saveButton);
-            panel.add(updateButton);
-            panel.add(deleteButton);
-            panel.add(clearButton);
-
-            return panel;
-        }
-
-        private void loadAppointments() {
+            // Refresh display
             try {
-                List<Appointment> appointments = appointmentDAO.getAllAppointments();
-                appointmentCombo.removeAllItems();
-                appointmentCombo.addItem(new AppointmentComboItem(-1, "Select Appointment"));
-                for (Appointment appointment : appointments) {
-                    try {
-                        Patient patient = patientDAO.getPatientById(appointment.getPatientId());
-                        String patientName = patient != null ? patient.getFirstName() + " " + patient.getLastName() : "Unknown";
-                        appointmentCombo.addItem(new AppointmentComboItem(appointment.getId(), 
-                            "Appt #" + appointment.getId() + " - " + patientName + " (" + appointment.getAppointmentDate() + ")"));
-                    } catch (SQLException e) {
-                        appointmentCombo.addItem(new AppointmentComboItem(appointment.getId(), 
-                            "Appt #" + appointment.getId() + " - " + appointment.getAppointmentDate()));
-                    }
+                StringBuilder text = new StringBuilder();
+                for (clinicmanager.models.MedicalCondition cond : medicalConditionDAO.getConditionsByPatientId(selectedPatientId)) {
+                    text.append("• ").append(cond.getConditionName()).append(" (").append(cond.getStatus()).append(")\n");
+                    text.append("  Diagnosed: ").append(cond.getDiagnosisDate()).append("\n");
+                    text.append("  Notes: ").append(cond.getNotes()).append("\n\n");
                 }
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error loading appointments: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                displayArea.setText(text.toString());
+            } catch (SQLException ex) {
+                displayArea.setText("Error loading conditions");
             }
+
+            mainPanel.add(formPanel, BorderLayout.NORTH);
+            mainPanel.add(displayPanel, BorderLayout.CENTER);
+            return mainPanel;
         }
 
-        private void saveVisit() {
-            AppointmentComboItem selected = (AppointmentComboItem) appointmentCombo.getSelectedItem();
-            if (selected == null || selected.getId() == -1) {
-                JOptionPane.showMessageDialog(this, "Please select an appointment.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+        private JPanel createAllergiesPanel() throws SQLException {
+            JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+            mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-            String dateString = getDateString(dateField);
-            if (dateString == null || dateString.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Visit date is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            // Input form
+            JPanel formPanel = new JPanel(new GridBagLayout());
+            formPanel.setBorder(BorderFactory.createTitledBorder("Add Allergy"));
+            formPanel.setBackground(Color.WHITE);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.anchor = GridBagConstraints.WEST;
 
-            try {
-                Visit visit = new Visit(0,
-                    selected.getId(),
-                    dateString,
-                    notesArea.getText().trim());
-                
-                visitDAO.addVisit(visit);
-                JOptionPane.showMessageDialog(this, "Visit recorded successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                clearForm();
-                refreshTable();
-                loadAppointments();
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error recording visit: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
+            JTextField allergenField = new JTextField(20);
+            JTextField reactionField = new JTextField(20);
+            JComboBox<String> severityCombo = new JComboBox<>(new String[]{"mild", "moderate", "severe"});
+            JTextArea notesArea = new JTextArea(3, 20);
+            notesArea.setLineWrap(true);
+            notesArea.setWrapStyleWord(true);
 
-        private void updateVisit() {
-            if (selectedVisitId == -1) {
-                JOptionPane.showMessageDialog(this, "Please select a visit to update.", "No Selection", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
+            gbc.gridx = 0; gbc.gridy = 0;
+            formPanel.add(new JLabel("Allergen *:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(allergenField, gbc);
 
-            AppointmentComboItem selected = (AppointmentComboItem) appointmentCombo.getSelectedItem();
-            if (selected == null || selected.getId() == -1) {
-                JOptionPane.showMessageDialog(this, "Please select an appointment.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            gbc.gridx = 0; gbc.gridy = 1;
+            formPanel.add(new JLabel("Reaction:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(reactionField, gbc);
 
-            String dateString = getDateString(dateField);
-            if (dateString == null || dateString.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Visit date is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            gbc.gridx = 0; gbc.gridy = 2;
+            formPanel.add(new JLabel("Severity:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(severityCombo, gbc);
 
-            int confirm = JOptionPane.showConfirmDialog(this, 
-                "Are you sure you want to update this visit?", 
-                "Confirm Update", JOptionPane.YES_NO_OPTION);
-            
-            if (confirm == JOptionPane.YES_OPTION) {
+            gbc.gridx = 0; gbc.gridy = 3;
+            gbc.anchor = GridBagConstraints.NORTHWEST;
+            formPanel.add(new JLabel("Notes:"), gbc);
+            gbc.gridx = 1;
+            gbc.fill = GridBagConstraints.BOTH;
+            formPanel.add(new JScrollPane(notesArea), gbc);
+
+            JButton addBtn = createModernButton("Add Allergy", new Color(34, 139, 34), new Color(50, 160, 50), 120, 30);
+            gbc.gridx = 0; gbc.gridy = 4;
+            gbc.gridwidth = 2;
+            gbc.fill = GridBagConstraints.NONE;
+            gbc.anchor = GridBagConstraints.CENTER;
+            formPanel.add(addBtn, gbc);
+
+            // Display panel
+            JPanel displayPanel = new JPanel(new BorderLayout());
+            displayPanel.setBorder(BorderFactory.createTitledBorder("Patient Allergies"));
+            JTextArea displayArea = new JTextArea(12, 50);
+            displayArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
+            displayArea.setEditable(false);
+            displayPanel.add(new JScrollPane(displayArea), BorderLayout.CENTER);
+
+            addBtn.addActionListener(e -> {
+                if (allergenField.getText().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please enter an allergen");
+                    return;
+                }
                 try {
-                    Visit visit = new Visit(selectedVisitId,
-                        selected.getId(),
-                        dateString,
-                        notesArea.getText().trim());
-                    
-                    visitDAO.updateVisit(visit);
-                    JOptionPane.showMessageDialog(this, "Visit updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    clearForm();
-                    refreshTable();
-                    loadAppointments();
-                } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(this, "Error updating visit: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    clinicmanager.models.Allergy allergy = new clinicmanager.models.Allergy(
+                        0, selectedPatientId, allergenField.getText(), reactionField.getText(),
+                        (String) severityCombo.getSelectedItem(), notesArea.getText()
+                    );
+                    allergyDAO.addAllergy(allergy);
+                    JOptionPane.showMessageDialog(this, "Allergy added successfully!");
+                    allergenField.setText("");
+                    reactionField.setText("");
+                    notesArea.setText("");
+                    loadMedicalHistory();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
                 }
-            }
-        }
+            });
 
-        private void deleteVisit() {
-            if (selectedVisitId == -1) {
-                JOptionPane.showMessageDialog(this, "Please select a visit to delete.", "No Selection", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            int confirm = JOptionPane.showConfirmDialog(this, 
-                "Are you sure you want to delete this visit?", 
-                "Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            
-            if (confirm == JOptionPane.YES_OPTION) {
-                try {
-                    visitDAO.deleteVisit(selectedVisitId);
-                    JOptionPane.showMessageDialog(this, "Visit deleted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    clearForm();
-                    refreshTable();
-                    loadAppointments();
-                } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(this, "Error deleting visit: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        }
-
-        private void clearForm() {
-            selectedVisitId = -1;
-            appointmentCombo.setSelectedIndex(0);
-            setDateFromString(dateField, new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
-            notesArea.setText("");
-            visitTable.clearSelection();
-        }
-
-        private void loadSelectedVisit() {
-            int row = visitTable.getSelectedRow();
-            if (row >= 0) {
-                selectedVisitId = (Integer) tableModel.getValueAt(row, 0);
-                int appointmentId = (Integer) tableModel.getValueAt(row, 1);
-                
-                // Set appointment in combo
-                for (int i = 0; i < appointmentCombo.getItemCount(); i++) {
-                    AppointmentComboItem item = appointmentCombo.getItemAt(i);
-                    if (item.getId() == appointmentId) {
-                        appointmentCombo.setSelectedIndex(i);
-                        break;
-                    }
-                }
-                
-                setDateFromString(dateField, (String) tableModel.getValueAt(row, 3));
-                notesArea.setText((String) tableModel.getValueAt(row, 4));
-            }
-        }
-
-        private void refreshTable() {
+            // Refresh display
             try {
-                List<Visit> visits = visitDAO.getAllVisits();
-                tableModel.setRowCount(0);
-                for (Visit visit : visits) {
-                    try {
-                        Appointment appointment = appointmentDAO.getAppointmentById(visit.getAppointmentId());
-                        String patientName = "Unknown";
-                        if (appointment != null) {
-                            Patient patient = patientDAO.getPatientById(appointment.getPatientId());
-                            patientName = patient != null ? patient.getFirstName() + " " + patient.getLastName() : "Unknown";
-                        }
-                        tableModel.addRow(new Object[]{
-                            visit.getId(),
-                            visit.getAppointmentId(),
-                            patientName,
-                            visit.getVisitDate(),
-                            visit.getNotes()
-                        });
-                    } catch (SQLException e) {
-                        tableModel.addRow(new Object[]{
-                            visit.getId(),
-                            visit.getAppointmentId(),
-                            "Error loading",
-                            visit.getVisitDate(),
-                            visit.getNotes()
-                        });
-                    }
+                StringBuilder text = new StringBuilder();
+                for (clinicmanager.models.Allergy allergy : allergyDAO.getAllergiesByPatientId(selectedPatientId)) {
+                    text.append("⚠ ").append(allergy.getAllergen()).append(" [").append(allergy.getSeverity()).append("]\n");
+                    text.append("  Reaction: ").append(allergy.getReaction()).append("\n");
+                    text.append("  Notes: ").append(allergy.getNotes()).append("\n\n");
                 }
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error loading visits: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                displayArea.setText(text.toString());
+            } catch (SQLException ex) {
+                displayArea.setText("Error loading allergies");
             }
+
+            mainPanel.add(formPanel, BorderLayout.NORTH);
+            mainPanel.add(displayPanel, BorderLayout.CENTER);
+            return mainPanel;
         }
 
-        class AppointmentComboItem {
+        private JPanel createMedicationsPanel() throws SQLException {
+            JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+            mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+            // Input form
+            JPanel formPanel = new JPanel(new GridBagLayout());
+            formPanel.setBorder(BorderFactory.createTitledBorder("Add Medication"));
+            formPanel.setBackground(Color.WHITE);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.anchor = GridBagConstraints.WEST;
+
+            JTextField medNameField = new JTextField(20);
+            JTextField dosageField = new JTextField(20);
+            JTextField frequencyField = new JTextField(20);
+            JTextField startDateField = new JTextField(20);
+            JTextField endDateField = new JTextField(20);
+            JComboBox<String> statusCombo = new JComboBox<>(new String[]{"active", "discontinued", "paused"});
+            JTextArea notesArea = new JTextArea(3, 20);
+            notesArea.setLineWrap(true);
+            notesArea.setWrapStyleWord(true);
+
+            gbc.gridx = 0; gbc.gridy = 0;
+            formPanel.add(new JLabel("Medication Name *:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(medNameField, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 1;
+            formPanel.add(new JLabel("Dosage:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(dosageField, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 2;
+            formPanel.add(new JLabel("Frequency:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(frequencyField, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 3;
+            formPanel.add(new JLabel("Start Date (yyyy-MM-dd):"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(startDateField, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 4;
+            formPanel.add(new JLabel("End Date (yyyy-MM-dd):"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(endDateField, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 5;
+            formPanel.add(new JLabel("Status:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(statusCombo, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 6;
+            gbc.anchor = GridBagConstraints.NORTHWEST;
+            formPanel.add(new JLabel("Notes:"), gbc);
+            gbc.gridx = 1;
+            gbc.fill = GridBagConstraints.BOTH;
+            formPanel.add(new JScrollPane(notesArea), gbc);
+
+            JButton addBtn = createModernButton("Add Medication", new Color(34, 139, 34), new Color(50, 160, 50), 120, 30);
+            gbc.gridx = 0; gbc.gridy = 7;
+            gbc.gridwidth = 2;
+            gbc.fill = GridBagConstraints.NONE;
+            gbc.anchor = GridBagConstraints.CENTER;
+            formPanel.add(addBtn, gbc);
+
+            // Display panel
+            JPanel displayPanel = new JPanel(new BorderLayout());
+            displayPanel.setBorder(BorderFactory.createTitledBorder("Current Medications"));
+            JTextArea displayArea = new JTextArea(12, 50);
+            displayArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
+            displayArea.setEditable(false);
+            displayPanel.add(new JScrollPane(displayArea), BorderLayout.CENTER);
+
+            addBtn.addActionListener(e -> {
+                if (medNameField.getText().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please enter a medication name");
+                    return;
+                }
+                
+                // Validate date format if provided
+                String startDate = startDateField.getText().trim();
+                String endDate = endDateField.getText().trim();
+                
+                if (!startDate.isEmpty() && !isValidDateFormat(startDate)) {
+                    JOptionPane.showMessageDialog(this, "Invalid start date format. Use yyyy-MM-dd (e.g., 2024-01-15) or leave empty");
+                    return;
+                }
+                
+                if (!endDate.isEmpty() && !isValidDateFormat(endDate)) {
+                    JOptionPane.showMessageDialog(this, "Invalid end date format. Use yyyy-MM-dd (e.g., 2024-01-15) or leave empty");
+                    return;
+                }
+                
+                try {
+                    clinicmanager.models.Medication med = new clinicmanager.models.Medication(
+                        0, selectedPatientId, medNameField.getText(), dosageField.getText(),
+                        frequencyField.getText(), startDate, endDate,
+                        (String) statusCombo.getSelectedItem(), notesArea.getText()
+                    );
+                    medicationDAO.addMedication(med);
+                    JOptionPane.showMessageDialog(this, "Medication added successfully!");
+                    medNameField.setText("");
+                    dosageField.setText("");
+                    frequencyField.setText("");
+                    startDateField.setText("");
+                    endDateField.setText("");
+                    notesArea.setText("");
+                    loadMedicalHistory();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+                }
+            });
+
+            // Refresh display
+            try {
+                StringBuilder text = new StringBuilder();
+                for (clinicmanager.models.Medication med : medicationDAO.getActiveMedicationsByPatientId(selectedPatientId)) {
+                    text.append("💊 ").append(med.getMedicationName()).append(" (").append(med.getStatus()).append(")\n");
+                    text.append("  Dosage: ").append(med.getDosage()).append(" - Frequency: ").append(med.getFrequency()).append("\n");
+                    text.append("  Started: ").append(med.getStartDate()).append("\n");
+                    if (med.getEndDate() != null && !med.getEndDate().isEmpty()) {
+                        text.append("  Ended: ").append(med.getEndDate()).append("\n");
+                    }
+                    text.append("  Notes: ").append(med.getNotes()).append("\n\n");
+                }
+                displayArea.setText(text.toString());
+            } catch (SQLException ex) {
+                displayArea.setText("Error loading medications");
+            }
+
+            mainPanel.add(formPanel, BorderLayout.NORTH);
+            mainPanel.add(displayPanel, BorderLayout.CENTER);
+            return mainPanel;
+        }
+
+        class PatientComboItem {
             private final int id;
             private final String name;
 
-            public AppointmentComboItem(int id, String name) {
+            public PatientComboItem(int id, String name) {
                 this.id = id;
                 this.name = name;
             }
@@ -1548,6 +1593,18 @@ public class MainFrame extends JFrame {
             @Override
             public String toString() {
                 return name;
+            }
+        }
+        
+        private boolean isValidDateFormat(String date) {
+            if (date == null || date.trim().isEmpty()) {
+                return true; // Empty is valid (will be set to NULL)
+            }
+            try {
+                java.sql.Date.valueOf(date.trim());
+                return true;
+            } catch (IllegalArgumentException e) {
+                return false;
             }
         }
     }

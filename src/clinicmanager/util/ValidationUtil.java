@@ -1,6 +1,8 @@
 package clinicmanager.util;
 
 import java.util.regex.Pattern;
+import java.util.Arrays;
+import java.util.List;
 
 public class ValidationUtil {
     private static final String EMAIL_PATTERN = 
@@ -11,6 +13,21 @@ public class ValidationUtil {
     
     private static final String DATE_PATTERN = 
         "^\\d{4}-\\d{2}-\\d{2}(\\s\\d{2}:\\d{2}(:\\d{2})?)?$";
+    
+    // Valid allergy severity levels (matching database constraint)
+    private static final List<String> VALID_SEVERITIES = Arrays.asList(
+        "mild", "moderate", "severe", "life-threatening"
+    );
+    
+    // Valid appointment statuses (matching database constraint)
+    private static final List<String> VALID_APPOINTMENT_STATUSES = Arrays.asList(
+        "scheduled", "arrived", "in-progress", "completed", "cancelled", "no_show"
+    );
+    
+    // Valid visit statuses (matching database constraint)
+    private static final List<String> VALID_VISIT_STATUSES = Arrays.asList(
+        "in-progress", "completed", "cancelled"
+    );
 
     public static boolean isValidEmail(String email) {
         if (email == null || email.trim().isEmpty()) {
@@ -57,6 +74,61 @@ public class ValidationUtil {
             return "Invalid date format. Use YYYY-MM-DD";
         }
         return null; // No errors
+    }
+    
+    // Validate allergy severity
+    public static boolean isValidSeverity(String severity) {
+        if (severity == null || severity.trim().isEmpty()) {
+            return false;
+        }
+        return VALID_SEVERITIES.contains(severity.toLowerCase().trim());
+    }
+    
+    // Get valid severity options
+    public static List<String> getValidSeverities() {
+        return VALID_SEVERITIES;
+    }
+    
+    // Validate appointment status
+    public static boolean isValidAppointmentStatus(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return false;
+        }
+        return VALID_APPOINTMENT_STATUSES.contains(status.toLowerCase().trim());
+    }
+    
+    // Get valid appointment status options
+    public static List<String> getValidAppointmentStatuses() {
+        return VALID_APPOINTMENT_STATUSES;
+    }
+    
+    // Validate visit status
+    public static boolean isValidVisitStatus(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return false;
+        }
+        return VALID_VISIT_STATUSES.contains(status.toLowerCase().trim());
+    }
+    
+    // Get valid visit status options
+    public static List<String> getValidVisitStatuses() {
+        return VALID_VISIT_STATUSES;
+    }
+    
+    // Normalize severity to proper case
+    public static String normalizeSeverity(String severity) {
+        if (severity == null) return "moderate";
+        String lower = severity.toLowerCase().trim();
+        if (VALID_SEVERITIES.contains(lower)) {
+            return lower;
+        }
+        return "moderate"; // default
+    }
+    
+    // Normalize status to proper case
+    public static String normalizeStatus(String status, String defaultStatus) {
+        if (status == null) return defaultStatus;
+        return status.toLowerCase().trim();
     }
 }
 

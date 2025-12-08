@@ -1,4 +1,4 @@
-﻿package clinicmanager.database;
+package clinicmanager.database;
 
 import java.io.InputStream;
 import java.sql.Connection;
