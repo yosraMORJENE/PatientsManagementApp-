@@ -70,9 +70,11 @@ public class MainFrame extends JFrame {
         tabbedPane.setBackground(new Color(240, 248, 255));
         
         // Add tabs
+        tabbedPane.addTab("Dashboard", new DashboardPanel(patientDAO, appointmentDAO));
         tabbedPane.addTab("Patients", new PatientPanel(patientDAO));
         tabbedPane.addTab("Appointments", new AppointmentPanel(appointmentDAO, patientDAO));
         tabbedPane.addTab("Medical History", new MedicalHistoryPanel(patientDAO, medicalConditionDAO, allergyDAO, medicationDAO));
+        tabbedPane.addTab("Reports", new ReportsPanel(patientDAO, appointmentDAO));
 
         // Add tabbed pane to frame
         add(tabbedPane, BorderLayout.CENTER);
@@ -1605,6 +1607,349 @@ public class MainFrame extends JFrame {
                 return true;
             } catch (IllegalArgumentException e) {
                 return false;
+            }
+        }
+    }
+
+    // Dashboard Panel - Statistics and Overview
+    // Dashboard Panel - Simple Statistics
+    class DashboardPanel extends JPanel {
+        private final PatientDAO patientDAO;
+        private final AppointmentDAO appointmentDAO;
+        private JLabel totalPatientsLabel, totalApptsLabel, completedLabel, missedLabel;
+        private JLabel scheduledLabel, cancelledLabel;
+
+        public DashboardPanel(PatientDAO patientDAO, AppointmentDAO appointmentDAO) {
+            this.patientDAO = patientDAO;
+            this.appointmentDAO = appointmentDAO;
+            
+            setLayout(new BorderLayout(10, 10));
+            setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+            setBackground(new Color(245, 250, 255));
+            
+            // Create simple text display
+            JTextArea statsArea = new JTextArea();
+            statsArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            statsArea.setEditable(false);
+            statsArea.setLineWrap(true);
+            statsArea.setName("statsArea");
+            
+            // Create labels for updating
+            totalPatientsLabel = new JLabel("0");
+            totalApptsLabel = new JLabel("0");
+            completedLabel = new JLabel("0");
+            missedLabel = new JLabel("0");
+            scheduledLabel = new JLabel("0");
+            cancelledLabel = new JLabel("0");
+            
+            // Create stats panel with grid
+            JPanel statsPanel = new JPanel(new GridLayout(3, 2, 15, 15));
+            statsPanel.setBackground(Color.WHITE);
+            statsPanel.setBorder(BorderFactory.createTitledBorder("Statistics"));
+            
+            statsPanel.add(createStatRow("Total Patients:", totalPatientsLabel));
+            statsPanel.add(createStatRow("Total Appointments:", totalApptsLabel));
+            statsPanel.add(createStatRow("Completed:", completedLabel));
+            statsPanel.add(createStatRow("Missed:", missedLabel));
+            statsPanel.add(createStatRow("Scheduled:", scheduledLabel));
+            statsPanel.add(createStatRow("Cancelled:", cancelledLabel));
+            
+            // Add refresh button
+            JButton refreshBtn = createModernButton("Refresh Stats", 
+                new Color(52, 152, 219), new Color(41, 128, 185), 120, 35);
+            refreshBtn.addActionListener(e -> refreshStats());
+            
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            buttonPanel.setBackground(new Color(245, 250, 255));
+            buttonPanel.add(refreshBtn);
+            
+            add(statsPanel, BorderLayout.NORTH);
+            add(buttonPanel, BorderLayout.SOUTH);
+            
+            refreshStats();
+        }
+
+        private JPanel createStatRow(String label, JLabel valueLabel) {
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.setBackground(Color.WHITE);
+            JLabel labelComp = new JLabel(label);
+            labelComp.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+            valueLabel.setForeground(new Color(52, 152, 219));
+            panel.add(labelComp, BorderLayout.WEST);
+            panel.add(valueLabel, BorderLayout.EAST);
+            return panel;
+        }
+
+        private void refreshStats() {
+            try {
+                int totalPatients = patientDAO.getAllPatients().size();
+                java.util.List<Appointment> appointments = appointmentDAO.getAllAppointments();
+                int totalAppts = appointments.size();
+                int completed = 0, missed = 0, scheduled = 0, cancelled = 0;
+                
+                for (Appointment apt : appointments) {
+                    String status = apt.getStatus();
+                    if (status != null) {
+                        if (status.equals("completed")) completed++;
+                        else if (status.equals("missed")) missed++;
+                        else if (status.equals("scheduled")) scheduled++;
+                        else if (status.equals("cancelled")) cancelled++;
+                    }
+                }
+                
+                totalPatientsLabel.setText(String.valueOf(totalPatients));
+                totalApptsLabel.setText(String.valueOf(totalAppts));
+                completedLabel.setText(String.valueOf(completed));
+                missedLabel.setText(String.valueOf(missed));
+                scheduledLabel.setText(String.valueOf(scheduled));
+                cancelledLabel.setText(String.valueOf(cancelled));
+                
+                JOptionPane.showMessageDialog(this, "Stats updated!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // Reports Panel - Export Functionality
+    class ReportsPanel extends JPanel {
+        private final PatientDAO patientDAO;
+        private final AppointmentDAO appointmentDAO;
+
+        public ReportsPanel(PatientDAO patientDAO, AppointmentDAO appointmentDAO) {
+            this.patientDAO = patientDAO;
+            this.appointmentDAO = appointmentDAO;
+            
+            setLayout(new BorderLayout(10, 10));
+            setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+            setBackground(new Color(245, 250, 255));
+            
+            JPanel buttonPanel = createButtonPanel();
+            JPanel infoPanel = createInfoPanel();
+            
+            add(buttonPanel, BorderLayout.NORTH);
+            add(infoPanel, BorderLayout.CENTER);
+        }
+
+        private JPanel createButtonPanel() {
+            JPanel panel = new JPanel(new GridLayout(3, 2, 15, 15));
+            panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
+                "Export Reports", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
+                new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
+            panel.setBackground(Color.WHITE);
+            
+            // Patient List Report
+            JButton patientListBtn = createModernButton("Export Patient List (CSV)", 
+                new Color(46, 204, 113), new Color(39, 174, 96), 200, 50);
+            patientListBtn.addActionListener(e -> exportPatientList());
+            panel.add(patientListBtn);
+            
+            // Appointment Report
+            JButton appointmentBtn = createModernButton("Export Appointments (CSV)", 
+                new Color(52, 152, 219), new Color(41, 128, 185), 200, 50);
+            appointmentBtn.addActionListener(e -> exportAppointments());
+            panel.add(appointmentBtn);
+            
+            // Statistics Report
+            JButton statsBtn = createModernButton("Export Statistics (CSV)", 
+                new Color(155, 89, 182), new Color(142, 68, 173), 200, 50);
+            statsBtn.addActionListener(e -> exportStatistics());
+            panel.add(statsBtn);
+            
+            // Open Reports Folder
+            JButton openFolderBtn = createModernButton("Open Reports Folder", 
+                new Color(230, 126, 34), new Color(209, 109, 25), 200, 50);
+            openFolderBtn.addActionListener(e -> openReportsFolder());
+            panel.add(openFolderBtn);
+            
+            return panel;
+        }
+
+        private JPanel createInfoPanel() {
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
+                "Report Information", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
+                new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
+            panel.setBackground(Color.WHITE);
+            
+            JTextArea infoArea = new JTextArea();
+            infoArea.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            infoArea.setEditable(false);
+            infoArea.setLineWrap(true);
+            infoArea.setWrapStyleWord(true);
+            infoArea.setText(
+                "REPORT GENERATION\n\n" +
+                "Available Reports:\n\n" +
+                "1. PATIENT LIST REPORT\n" +
+                "   • Exports all patients with their contact information\n" +
+                "   • Includes: ID, Name, Phone, Email, Address, DOB\n" +
+                "   • Format: CSV (can open in Excel)\n\n" +
+                "2. APPOINTMENT REPORT\n" +
+                "   • Exports all appointments with status\n" +
+                "   • Includes: ID, Patient Name, Date, Reason, Status\n" +
+                "   • Format: CSV (can open in Excel)\n\n" +
+                "3. STATISTICS REPORT\n" +
+                "   • Generates summary statistics\n" +
+                "   • Shows total patients, appointments by status\n" +
+                "   • Format: CSV\n\n" +
+                "All reports are saved to: [Project Root]/reports/ folder\n" +
+                "Use 'Open Reports Folder' to access exported files."
+            );
+            
+            panel.add(new JScrollPane(infoArea), BorderLayout.CENTER);
+            return panel;
+        }
+
+        private void exportPatientList() {
+            try {
+                java.util.List<Patient> patients = patientDAO.getAllPatients();
+                
+                // Create reports directory
+                java.io.File reportsDir = new java.io.File("reports");
+                if (!reportsDir.exists()) {
+                    reportsDir.mkdir();
+                }
+                
+                // Create CSV file
+                String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new java.util.Date());
+                java.io.File file = new java.io.File("reports/PatientList_" + timestamp + ".csv");
+                java.io.FileWriter writer = new java.io.FileWriter(file);
+                
+                // Write header
+                writer.write("ID,First Name,Last Name,Phone,Email,Address,Date of Birth\n");
+                
+                // Write data
+                for (Patient p : patients) {
+                    writer.write(String.format("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                        p.getId(),
+                        p.getFirstName(),
+                        p.getLastName(),
+                        p.getPhoneNumber() != null ? p.getPhoneNumber() : "",
+                        p.getEmail() != null ? p.getEmail() : "",
+                        p.getAddress() != null ? p.getAddress() : "",
+                        p.getDateOfBirth() != null ? p.getDateOfBirth() : ""
+                    ));
+                }
+                
+                writer.close();
+                JOptionPane.showMessageDialog(this, "Patient list exported successfully!\nFile: " + file.getAbsolutePath(), "Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error exporting patient list: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+        private void exportAppointments() {
+            try {
+                java.util.List<Appointment> appointments = appointmentDAO.getAllAppointments();
+                
+                // Create reports directory
+                java.io.File reportsDir = new java.io.File("reports");
+                if (!reportsDir.exists()) {
+                    reportsDir.mkdir();
+                }
+                
+                // Create CSV file
+                String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new java.util.Date());
+                java.io.File file = new java.io.File("reports/Appointments_" + timestamp + ".csv");
+                java.io.FileWriter writer = new java.io.FileWriter(file);
+                
+                // Write header
+                writer.write("ID,Patient ID,Patient Name,Date & Time,Reason,Status\n");
+                
+                // Write data
+                for (Appointment apt : appointments) {
+                    try {
+                        Patient patient = patientDAO.getPatientById(apt.getPatientId());
+                        String patientName = patient != null ? patient.getFirstName() + " " + patient.getLastName() : "Unknown";
+                        
+                        writer.write(String.format("%d,%d,\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                            apt.getId(),
+                            apt.getPatientId(),
+                            patientName,
+                            apt.getAppointmentDate(),
+                            apt.getReason() != null ? apt.getReason() : "",
+                            apt.getStatus() != null ? apt.getStatus() : "scheduled"
+                        ));
+                    } catch (SQLException e) {
+                        // Skip if patient not found
+                    }
+                }
+                
+                writer.close();
+                JOptionPane.showMessageDialog(this, "Appointments exported successfully!\nFile: " + file.getAbsolutePath(), "Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error exporting appointments: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+        private void exportStatistics() {
+            try {
+                java.util.List<Patient> patients = patientDAO.getAllPatients();
+                java.util.List<Appointment> appointments = appointmentDAO.getAllAppointments();
+                
+                int completedAppts = 0;
+                int missedAppts = 0;
+                int scheduledAppts = 0;
+                int cancelledAppts = 0;
+                
+                for (Appointment apt : appointments) {
+                    String status = apt.getStatus();
+                    if (status != null) {
+                        if (status.equals("completed")) completedAppts++;
+                        else if (status.equals("missed")) missedAppts++;
+                        else if (status.equals("scheduled")) scheduledAppts++;
+                        else if (status.equals("cancelled")) cancelledAppts++;
+                    }
+                }
+                
+                // Create reports directory
+                java.io.File reportsDir = new java.io.File("reports");
+                if (!reportsDir.exists()) {
+                    reportsDir.mkdir();
+                }
+                
+                // Create CSV file
+                String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new java.util.Date());
+                java.io.File file = new java.io.File("reports/Statistics_" + timestamp + ".csv");
+                java.io.FileWriter writer = new java.io.FileWriter(file);
+                
+                // Write statistics
+                writer.write("Metric,Value\n");
+                writer.write("Total Patients," + patients.size() + "\n");
+                writer.write("Total Appointments," + appointments.size() + "\n");
+                writer.write("Scheduled Appointments," + scheduledAppts + "\n");
+                writer.write("Completed Appointments," + completedAppts + "\n");
+                writer.write("Missed Appointments," + missedAppts + "\n");
+                writer.write("Cancelled Appointments," + cancelledAppts + "\n");
+                
+                if (appointments.size() > 0) {
+                    double completionRate = (completedAppts * 100.0) / appointments.size();
+                    writer.write("Completion Rate (%)," + String.format("%.2f", completionRate) + "\n");
+                }
+                
+                writer.close();
+                JOptionPane.showMessageDialog(this, "Statistics exported successfully!\nFile: " + file.getAbsolutePath(), "Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error exporting statistics: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+        private void openReportsFolder() {
+            try {
+                java.io.File reportsDir = new java.io.File("reports");
+                if (!reportsDir.exists()) {
+                    reportsDir.mkdir();
+                }
+                
+                String path = reportsDir.getAbsolutePath();
+                if (System.getProperty("os.name").startsWith("Windows")) {
+                    Runtime.getRuntime().exec("explorer.exe /select," + path);
+                } else {
+                    Runtime.getRuntime().exec(new String[]{"open", path});
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error opening folder: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
