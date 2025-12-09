@@ -233,4 +233,34 @@ CREATE TRIGGER trg_visits_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- =========================
+-- Authentication & Users
+-- =========================
+
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    full_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP
+);
+
+COMMENT ON TABLE users IS 'User accounts for login authentication.';
+COMMENT ON COLUMN users.role IS 'User role: admin, doctor, nurse, or user';
+COMMENT ON COLUMN users.password IS 'Password - Should be hashed in production using BCrypt or similar';
+
+-- Insert default admin user
+INSERT INTO users (username, password, role, full_name) 
+VALUES ('admin', 'admin123', 'admin', 'System Administrator')
+ON CONFLICT (username) DO NOTHING;
+
+-- Insert sample users
+INSERT INTO users (username, password, role, full_name) 
+VALUES 
+    ('doctor1', 'doctor123', 'doctor', 'Dr. John Smith'),
+    ('nurse1', 'nurse123', 'nurse', 'Jane Doe')
+ON CONFLICT (username) DO NOTHING;
+
 COMMIT;

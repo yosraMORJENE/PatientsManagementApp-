@@ -72,10 +72,7 @@ public class DatabaseConnection {
                 dbSchema = dbProperties.getProperty("db.schema", "public");
                 dbUsername = dbProperties.getProperty("db.username", "postgres");
                 dbPassword = dbProperties.getProperty("db.password", "yosra");
-                
-                System.out.println("Database configuration loaded from properties file.");
             } else {
-                System.out.println("Using default database configuration.");
             }
         } catch (Exception e) {
             System.err.println("Warning: Could not load database properties. Using defaults: " + e.getMessage());
@@ -167,7 +164,6 @@ public class DatabaseConnection {
             // Create data source
             dataSource = (DataSource) hikariDataSourceClass.getDeclaredConstructor(hikariConfigClass).newInstance(hikariConfig);
             useConnectionPool = true;
-            System.out.println("Database connection pool initialized successfully.");
             
             // Initialize database schema
             initializeDatabase();
@@ -193,7 +189,6 @@ public class DatabaseConnection {
             dataSource = new BasicDataSource();
             useConnectionPool = false;
             initializeDatabase();
-            System.out.println("Basic database connection initialized (no connection pooling).");
         } catch (Exception e) {
             System.err.println("Failed to initialize basic connection: " + e.getMessage());
             throw new RuntimeException("Database initialization failed", e);
@@ -308,8 +303,6 @@ public class DatabaseConnection {
             // Create triggers to automatically update updated_at
             createUpdateTriggers(stmt);
             
-            System.out.println("Database schema initialized successfully.");
-            
         } catch (SQLException e) {
             System.err.println("Error initializing database schema: " + e.getMessage());
             e.printStackTrace();
@@ -401,7 +394,6 @@ public class DatabaseConnection {
         if (dataSource != null && useConnectionPool) {
             try {
                 dataSource.getClass().getMethod("close").invoke(dataSource);
-                System.out.println("Database connection pool closed.");
             } catch (Exception e) {
                 System.err.println("Error closing connection pool: " + e.getMessage());
             }

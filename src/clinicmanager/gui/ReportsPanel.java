@@ -32,12 +32,8 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
         // Button panel with better spacing
         JPanel buttonPanel = createButtonPanel();
         
-        // Info panel
-        JPanel infoPanel = createInfoPanel();
-        
         mainContent.add(titlePanel, BorderLayout.NORTH);
         mainContent.add(buttonPanel, BorderLayout.CENTER);
-        mainContent.add(infoPanel, BorderLayout.SOUTH);
         
         add(mainContent, BorderLayout.NORTH);
         
@@ -60,16 +56,6 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
         
         panel.add(titleLabel, BorderLayout.NORTH);
         panel.add(descLabel, BorderLayout.SOUTH);
-        
-        return panel;
-    }
-
-    private JPanel createInfoPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(245, 250, 255));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
-        
-        
         
         return panel;
     }
@@ -130,20 +116,7 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
                 try {
                     action.actionPerformed(null);
                 } catch (Exception ex) {
-                    ex.printStackTrace();
                 }
-            }
-            
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                card.setBackground(bgColor.darker());
-                card.repaint();
-            }
-            
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                card.setBackground(originalColor);
-                card.repaint();
             }
         };
         
@@ -153,21 +126,6 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
         
         return card;
     }
-
-    private JButton createReportButton(String title, String description, Color bgColor, Color hoverColor) {
-        JButton button = new JButton(title);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        button.setForeground(Color.WHITE);
-        button.setBackground(bgColor);
-        button.setOpaque(true);
-        button.setBorderPainted(false);
-        button.setFocusPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(200, 70));
-        
-        return button;
-    }
-
 
     private void exportPatientList() {
         try {
@@ -185,19 +143,26 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
             writer.write("ID,First Name,Last Name,Phone,Email,Address,Date of Birth\n");
             
             for (Patient p : patients) {
-                writer.write(String.format("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                String dob = p.getDateOfBirth();
+                if (dob == null || dob.isEmpty()) {
+                    dob = "";
+                }
+                
+                writer.write(String.format("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%s\n",
                     p.getId(),
                     p.getFirstName(),
                     p.getLastName(),
                     p.getPhoneNumber() != null ? p.getPhoneNumber() : "",
                     p.getEmail() != null ? p.getEmail() : "",
-                    p.getAddress() != null ? p.getAddress() : "",
-                    p.getDateOfBirth() != null ? p.getDateOfBirth() : ""
+                    p.getAddress() != null ? p.getAddress().replace("\"", "\"\"") : "",
+                    dob
                 ));
             }
             
             writer.close();
-            JOptionPane.showMessageDialog(this, "Patient list exported successfully!\nFile: " + file.getAbsolutePath(), "Success", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, 
+                "Successfully exported " + patients.size() + " patients!\nFile: " + file.getAbsolutePath(), 
+                "Success", JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error exporting patient list: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -232,11 +197,14 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
                         apt.getStatus() != null ? apt.getStatus() : "scheduled"
                     ));
                 } catch (SQLException e) {
+                    System.err.println("Error getting patient for appointment: " + e.getMessage());
                 }
             }
             
             writer.close();
-            JOptionPane.showMessageDialog(this, "Appointments exported successfully!\nFile: " + file.getAbsolutePath(), "Success", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, 
+                "Successfully exported " + appointments.size() + " appointments!\nFile: " + file.getAbsolutePath(), 
+                "Success", JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error exporting appointments: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -311,16 +279,13 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
 
     @Override
     public void onPatientsChanged() {
-        // Data has changed, reports can use latest data on next export
     }
 
     @Override
     public void onAppointmentsChanged() {
-        // Data has changed, reports can use latest data on next export
     }
 
     @Override
     public void onMedicalHistoryChanged() {
-        // Can be implemented if needed
     }
 }

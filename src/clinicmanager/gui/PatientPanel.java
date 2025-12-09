@@ -30,13 +30,13 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         setBackground(new Color(245, 250, 255));
 
-        // Create form panel
+
         JPanel formPanel = createFormPanel();
         
-        // Create table panel
+
         JPanel tablePanel = createTablePanel();
         
-        // Create button panel
+
         JPanel buttonPanel = createButtonPanel();
 
         // Add components
@@ -44,10 +44,10 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         add(tablePanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
         
-        // Register as data change listener
+
         DataChangeManager.getInstance().addListener(this);
         
-        // Load initial data
+
         refreshTable();
     }
 
@@ -63,7 +63,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // First Name
+
         gbc.gridx = 0; gbc.gridy = 0;
         panel.add(new JLabel("First Name *:"), gbc);
         firstNameField = new JTextField(20);
@@ -71,7 +71,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         gbc.gridx = 1;
         panel.add(firstNameField, gbc);
 
-        // Last Name
+
         gbc.gridx = 0; gbc.gridy = 1;
         panel.add(new JLabel("Last Name *:"), gbc);
         lastNameField = new JTextField(20);
@@ -79,14 +79,14 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         gbc.gridx = 1;
         panel.add(lastNameField, gbc);
 
-        // Date of Birth
+
         gbc.gridx = 0; gbc.gridy = 2;
         panel.add(new JLabel("Date of Birth:"), gbc);
         dobField = createDatePicker();
         gbc.gridx = 1;
         panel.add(dobField, gbc);
 
-        // Phone Number
+
         gbc.gridx = 2; gbc.gridy = 0;
         panel.add(new JLabel("Phone Number:"), gbc);
         phoneField = new JTextField(20);
@@ -94,7 +94,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         gbc.gridx = 3;
         panel.add(phoneField, gbc);
 
-        // Email
+
         gbc.gridx = 2; gbc.gridy = 1;
         panel.add(new JLabel("Email:"), gbc);
         emailField = new JTextField(20);
@@ -102,7 +102,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         gbc.gridx = 3;
         panel.add(emailField, gbc);
 
-        // Address
+
         gbc.gridx = 2; gbc.gridy = 2;
         panel.add(new JLabel("Address:"), gbc);
         addressField = new JTextField(20);
@@ -120,7 +120,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
             javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
             new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
 
-        // Search panel
+
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         searchPanel.add(new JLabel("Search:"));
         searchField = new JTextField(25);
@@ -137,7 +137,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         searchPanel.add(refreshButton);
         panel.add(searchPanel, BorderLayout.NORTH);
 
-        // Table
+
         String[] columns = {"ID", "First Name", "Last Name", "Date of Birth", "Phone", "Email", "Address", "Appointment Status"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -170,7 +170,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
             }
         });
 
-        // Set column widths
+
         patientTable.getColumnModel().getColumn(0).setPreferredWidth(50);
         patientTable.getColumnModel().getColumn(1).setPreferredWidth(100);
         patientTable.getColumnModel().getColumn(2).setPreferredWidth(100);
@@ -236,7 +236,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
                 addressField.getText().trim());
             
             patientDAO.addPatient(patient);
-            JOptionPane.showMessageDialog(this, "Patient saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Patient saved", "Success", JOptionPane.INFORMATION_MESSAGE);
             clearForm();
             refreshTable();
             // Notify other panels that patients have changed
@@ -277,10 +277,10 @@ public class PatientPanel extends JPanel implements DataChangeListener {
                     addressField.getText().trim());
                 
                 patientDAO.updatePatient(patient);
-                JOptionPane.showMessageDialog(this, "Patient updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Patient updated", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 refreshTable();
-                // Notify other panels that patients have changed
+
                 DataChangeManager.getInstance().notifyPatientsChanged();
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error updating patient: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -301,10 +301,10 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 patientDAO.deletePatient(selectedPatientId);
-                JOptionPane.showMessageDialog(this, "Patient deleted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Patient deleted", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 refreshTable();
-                // Notify other panels that patients have changed
+
                 DataChangeManager.getInstance().notifyPatientsChanged();
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error deleting patient: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -395,18 +395,18 @@ public class PatientPanel extends JPanel implements DataChangeListener {
 
     @Override
     public void onPatientsChanged() {
-        // Refresh the patient table when patients change
+
         refreshTable();
     }
 
     @Override
     public void onAppointmentsChanged() {
-        // Can be implemented if needed
+
     }
 
     @Override
     public void onMedicalHistoryChanged() {
-        // Can be implemented if needed
+
     }
 
 }

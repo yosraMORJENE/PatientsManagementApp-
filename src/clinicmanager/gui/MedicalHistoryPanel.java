@@ -310,6 +310,9 @@ public class MedicalHistoryPanel extends JPanel implements DataChangeListener {
         formPanel.add(row2);
         
         JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        row3.add(new JLabel("End Date:"));
+        JPanel endDatePanel = MainFrame.createDatePickerPanel();
+        row3.add(endDatePanel);
         row3.add(new JLabel("Status:"));
         JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Active", "Inactive", "Completed"});
         row3.add(statusCombo);
@@ -341,6 +344,7 @@ public class MedicalHistoryPanel extends JPanel implements DataChangeListener {
                 String dosage = dosageField.getText().trim();
                 String frequency = frequencyField.getText().trim();
                 String startDate = MainFrame.getDateString(startDatePanel);
+                String endDate = MainFrame.getDateString(endDatePanel);
                 String status = (String) statusCombo.getSelectedItem();
                 String notes = notesArea.getText().trim();
                 
@@ -350,6 +354,7 @@ public class MedicalHistoryPanel extends JPanel implements DataChangeListener {
                 medication.setDosage(dosage);
                 medication.setFrequency(frequency);
                 medication.setStartDate(startDate);
+                medication.setEndDate(endDate);
                 medication.setStatus(status);
                 medication.setNotes(notes);
                 
@@ -384,12 +389,12 @@ public class MedicalHistoryPanel extends JPanel implements DataChangeListener {
 
         try {
             StringBuilder text = new StringBuilder();
-            for (Medication med : medicationDAO.getActiveMedicationsByPatientId(selectedPatientId)) {
+            for (Medication med : medicationDAO.getMedicationsByPatientId(selectedPatientId)) {
                 text.append("* ").append(med.getMedicationName()).append(" [").append(med.getStatus()).append("]\n");
                 text.append("  Dosage: ").append(med.getDosage()).append(" | Frequency: ").append(med.getFrequency()).append("\n");
                 text.append("  Started: ").append(med.getStartDate()).append("\n");
                 if (med.getEndDate() != null && !med.getEndDate().isEmpty()) {
-                    text.append("  Ended: ").append(med.getEndDate()).append("\n");
+                    text.append("  End date: ").append(med.getEndDate()).append("\n");
                 }
                 text.append("  Notes: ").append(med.getNotes()).append("\n\n");
             }
