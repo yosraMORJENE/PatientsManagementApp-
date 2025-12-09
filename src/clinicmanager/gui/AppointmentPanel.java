@@ -1,5 +1,6 @@
 package clinicmanager.gui;
 
+import clinicmanager.controllers.AppointmentController;
 import clinicmanager.dao.AppointmentDAO;
 import clinicmanager.dao.PatientDAO;
 import clinicmanager.models.Appointment;
@@ -13,8 +14,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 public class AppointmentPanel extends JPanel implements DataChangeListener {
-    private final AppointmentDAO appointmentDAO;
-    private final PatientDAO patientDAO;
+    private final AppointmentController controller;
     private JTable appointmentTable;
     private DefaultTableModel tableModel;
     private JComboBox<PatientComboItem> patientCombo;
@@ -25,8 +25,8 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
     private int selectedAppointmentId = -1;
 
     public AppointmentPanel(AppointmentDAO appointmentDAO, PatientDAO patientDAO) {
-        this.appointmentDAO = appointmentDAO;
-        this.patientDAO = patientDAO;
+        this.controller = new AppointmentController(appointmentDAO, patientDAO);
+        
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         setBackground(new Color(245, 250, 255));
@@ -165,12 +165,12 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
 
     private void loadPatients() {
         try {
-            List<Patient> patients = patientDAO.getAllPatients();
+            List<Patient> patients = controller.getAllPatients();
             patientCombo.removeAllItems();
             patientCombo.addItem(new PatientComboItem(-1, "Select Patient"));
             for (Patient patient : patients) {
                 patientCombo.addItem(new PatientComboItem(patient.getId(), 
-                    patient.getFirstName() + " " + patient.getLastName()));
+                    controller.getPatientName(patient)));
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error loading patients: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -179,42 +179,30 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
 
     private void saveAppointment() {
         PatientComboItem selected = (PatientComboItem) patientCombo.getSelectedItem();
-        if (selected == null || selected.getId() == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a patient.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
         String dateTimeString = MainFrame.getDateTimeString(dateField);
-        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Appointment date is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+        String errorMsg = controller.validateAppointment(selected != null ? selected.getId() : -1, dateTimeString, (String) statusCombo.getSelectedItem());
+        
+        if (errorMsg != null) {
+            JOptionPane.showMessageDialog(this, errorMsg, "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         try {
-            // see if theres conflicts
-            if (appointmentDAO.hasConflict(dateTimeString)) {
+            if (controller.hasConflict(dateTimeString)) {
                 int confirm = JOptionPane.showConfirmDialog(this, 
                     "Another appointment exists at this time. Do you want to schedule anyway?",
                     "Conflict Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-                if (confirm != JOptionPane.YES_OPTION) {
-                    return;
-                }
+                if (confirm != JOptionPane.YES_OPTION) return;
             }
 
-            Appointment appointment = new Appointment(0,
-                selected.getId(),
-                dateTimeString,
-                reasonField.getText().trim(),
-                (String) statusCombo.getSelectedItem(),
-                null,
-                null);
+            Appointment appointment = new Appointment(0, selected.getId(), dateTimeString, 
+                reasonField.getText().trim(), (String) statusCombo.getSelectedItem(), null, null);
             
-            appointmentDAO.addAppointment(appointment);
+            controller.saveAppointment(appointment);
             JOptionPane.showMessageDialog(this, "Appointment scheduled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
             clearForm();
             refreshTable();
             loadPatients();
-            // tell other parts theres new appointments
             DataChangeManager.getInstance().notifyAppointmentsChanged();
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error scheduling appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -228,14 +216,11 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         }
 
         PatientComboItem selected = (PatientComboItem) patientCombo.getSelectedItem();
-        if (selected == null || selected.getId() == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a patient.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
         String dateTimeString = MainFrame.getDateTimeString(dateField);
-        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Appointment date is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+        String errorMsg = controller.validateAppointment(selected != null ? selected.getId() : -1, dateTimeString, (String) statusCombo.getSelectedItem());
+        
+        if (errorMsg != null) {
+            JOptionPane.showMessageDialog(this, errorMsg, "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -245,21 +230,15 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                Appointment appointment = new Appointment(selectedAppointmentId,
-                    selected.getId(),
-                    dateTimeString,
-                    reasonField.getText().trim(),
-                    (String) statusCombo.getSelectedItem(),
-                    null,
-                    null);
+                Appointment appointment = new Appointment(selectedAppointmentId, selected.getId(), 
+                    dateTimeString, reasonField.getText().trim(), (String) statusCombo.getSelectedItem(), null, null);
                 
-                appointmentDAO.updateAppointment(appointment);
+                controller.updateAppointment(appointment);
                 JOptionPane.showMessageDialog(this, "appointment updated", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 refreshTable();
                 loadPatients();
                 appointmentTable.clearSelection();
-                // notify other stuff
                 DataChangeManager.getInstance().notifyAppointmentsChanged();
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error updating appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -303,28 +282,19 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
 
     private void refreshTable() {
         try {
-            List<Appointment> appointments = appointmentDAO.getAllAppointments();
+            List<Appointment> appointments = controller.getAllAppointments();
             tableModel.setRowCount(0);
             for (Appointment appointment : appointments) {
                 try {
-                    Patient patient = patientDAO.getPatientById(appointment.getPatientId());
-                    String patientName = patient != null ? patient.getFirstName() + " " + patient.getLastName() : "Unknown";
+                    String patientName = controller.getPatientNameById(appointment.getPatientId());
                     tableModel.addRow(new Object[]{
-                        appointment.getId(),
-                        appointment.getPatientId(),
-                        patientName,
-                        appointment.getAppointmentDate(),
-                        appointment.getReason(),
-                        appointment.getStatus()
+                        appointment.getId(), appointment.getPatientId(), patientName,
+                        appointment.getAppointmentDate(), appointment.getReason(), appointment.getStatus()
                     });
                 } catch (SQLException e) {
                     tableModel.addRow(new Object[]{
-                        appointment.getId(),
-                        appointment.getPatientId(),
-                        "Error loading",
-                        appointment.getAppointmentDate(),
-                        appointment.getReason(),
-                        appointment.getStatus()
+                        appointment.getId(), appointment.getPatientId(), "Error loading",
+                        appointment.getAppointmentDate(), appointment.getReason(), appointment.getStatus()
                     });
                 }
             }

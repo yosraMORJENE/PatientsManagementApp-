@@ -300,12 +300,7 @@ public class PatientDAO {
             .findFirst();
     }
     
-    // ============== SET COLLECTION EXAMPLES ==============
-    
-    /**
-     * Get unique email domains from all patients
-     * Example of Set collection to ensure uniqueness
-     */
+   
     public Set<String> getUniqueEmailDomains() throws SQLException {
         List<Patient> allPatients = getAllPatients();
         Set<String> domains = new HashSet<>();

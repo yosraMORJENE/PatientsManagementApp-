@@ -6,6 +6,7 @@ import java.awt.event.*;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * Modern date picker panel with proper visual design like standard desktop applications
@@ -17,10 +18,11 @@ public class DatePickerPanel extends JPanel {
     private DateSelectionListener listener;
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     private static final SimpleDateFormat DISPLAY_FORMAT = new SimpleDateFormat("MMMM yyyy");
+    private static final TimeZone TUNISIA_TZ = TimeZone.getTimeZone("Africa/Tunis");
 
     public DatePickerPanel(Date initialDate, DateSelectionListener listener) {
         this.listener = listener;
-        this.calendar = Calendar.getInstance();
+        this.calendar = Calendar.getInstance(TUNISIA_TZ);
         if (initialDate != null) {
             calendar.setTime(initialDate);
         }
@@ -111,7 +113,7 @@ public class DatePickerPanel extends JPanel {
     }
 
     private JPanel createCalendarPanel() {
-        daysPanel = new JPanel(new GridLayout(7, 7, 2, 2));
+        daysPanel = new JPanel(new GridLayout(0, 7, 2, 2));
         daysPanel.setBackground(new Color(250, 250, 250));
         daysPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
         return daysPanel;
@@ -125,7 +127,7 @@ public class DatePickerPanel extends JPanel {
     private void updateCalendarDays() {
         daysPanel.removeAll();
 
-        // day headers at top
+        // day headers at top (SUN=0, MON=1, ..., SAT=6)
         String[] dayHeaders = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
         for (String header : dayHeaders) {
             JLabel label = new JLabel(header, JLabel.CENTER);
@@ -137,14 +139,22 @@ public class DatePickerPanel extends JPanel {
             daysPanel.add(label);
         }
 
-        // figure out first day and total days
+        // figure out what day of week the 1st falls on
         Calendar tempCal = (Calendar) calendar.clone();
         tempCal.set(Calendar.DAY_OF_MONTH, 1);
-        int firstDayOfWeek = tempCal.get(Calendar.DAY_OF_WEEK) - 1;
+        int firstDayOfWeek = tempCal.get(Calendar.DAY_OF_WEEK) - 1; // 0=SUN, 1=MON, ..., 6=SAT
         int daysInMonth = tempCal.getActualMaximum(Calendar.DAY_OF_MONTH);
         int currentDay = calendar.get(Calendar.DAY_OF_MONTH);
+        
+        // get today's date for comparison (using Tunisia timezone)
+        Calendar today = Calendar.getInstance(TUNISIA_TZ);
+        int todayDay = today.get(Calendar.DAY_OF_MONTH);
+        int todayMonth = today.get(Calendar.MONTH);
+        int todayYear = today.get(Calendar.YEAR);
+        int calendarMonth = calendar.get(Calendar.MONTH);
+        int calendarYear = calendar.get(Calendar.YEAR);
 
-        // add empty cells before month
+        // add empty cells before month starts
         for (int i = 0; i < firstDayOfWeek; i++) {
             JPanel emptyCell = new JPanel();
             emptyCell.setBackground(new Color(250, 250, 250));
@@ -155,18 +165,27 @@ public class DatePickerPanel extends JPanel {
         // add all day buttons
         for (int day = 1; day <= daysInMonth; day++) {
             final int selectedDay = day;
-            final int finalCurrentDay = currentDay;
             JButton dayBtn = new JButton(String.valueOf(day));
             dayBtn.setFont(new Font("Arial", Font.PLAIN, 12));
             dayBtn.setFocusPainted(false);
             dayBtn.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
             dayBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
             
-            if (day == currentDay) {
-                // highlight todays date
+            // check if this day is today
+            boolean isToday = (day == todayDay && calendarMonth == todayMonth && calendarYear == todayYear);
+            // check if this day is selected in calendar
+            boolean isSelected = (day == currentDay);
+            
+            if (isToday) {
+                // highlight todays date in blue
                 dayBtn.setBackground(new Color(66, 133, 244));
                 dayBtn.setForeground(Color.WHITE);
                 dayBtn.setFont(new Font("Arial", Font.BOLD, 12));
+                dayBtn.setOpaque(true);
+            } else if (isSelected) {
+                // highlight selected date in lighter blue
+                dayBtn.setBackground(new Color(100, 150, 200));
+                dayBtn.setForeground(Color.WHITE);
                 dayBtn.setOpaque(true);
             } else {
                 dayBtn.setBackground(Color.WHITE);
@@ -177,14 +196,14 @@ public class DatePickerPanel extends JPanel {
             dayBtn.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    if (selectedDay != finalCurrentDay) {
+                    if (!isSelected && !isToday) {
                         dayBtn.setBackground(new Color(230, 240, 255));
                     }
                 }
 
                 @Override
                 public void mouseExited(MouseEvent e) {
-                    if (selectedDay != finalCurrentDay) {
+                    if (!isSelected && !isToday) {
                         dayBtn.setBackground(Color.WHITE);
                     }
                 }
@@ -201,8 +220,8 @@ public class DatePickerPanel extends JPanel {
             daysPanel.add(dayBtn);
         }
 
-        // Add empty cells after month ends
-        int totalCells = 7 + firstDayOfWeek + daysInMonth;
+        // Add empty cells after month ends to complete the grid
+        int totalCells = 7 + firstDayOfWeek + daysInMonth; // 7 headers + empty padding + days
         while (totalCells % 7 != 0) {
             JPanel emptyCell = new JPanel();
             emptyCell.setBackground(new Color(250, 250, 250));

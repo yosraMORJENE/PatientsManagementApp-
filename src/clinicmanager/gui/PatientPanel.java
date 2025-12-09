@@ -1,5 +1,6 @@
 package clinicmanager.gui;
 
+import clinicmanager.controllers.PatientController;
 import clinicmanager.dao.AppointmentDAO;
 import clinicmanager.dao.PatientDAO;
 import clinicmanager.models.Patient;
@@ -13,7 +14,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 public class PatientPanel extends JPanel implements DataChangeListener {
-    private final PatientDAO patientDAO;
+    private final PatientController controller;
     private final AppointmentDAO appointmentDAO;
     private JTable patientTable;
     private DefaultTableModel tableModel;
@@ -24,7 +25,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
     private int selectedPatientId = -1;
 
     public PatientPanel(PatientDAO patientDAO, AppointmentDAO appointmentDAO) {
-        this.patientDAO = patientDAO;
+        this.controller = new PatientController(patientDAO);
         this.appointmentDAO = appointmentDAO;
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -235,7 +236,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
                 emailField.getText().trim(),
                 addressField.getText().trim());
             
-            patientDAO.addPatient(patient);
+            controller.savePatient(patient);
             JOptionPane.showMessageDialog(this, "Patient saved", "Success", JOptionPane.INFORMATION_MESSAGE);
             clearForm();
             refreshTable();
@@ -276,7 +277,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
                     emailField.getText().trim(),
                     addressField.getText().trim());
                 
-                patientDAO.updatePatient(patient);
+                controller.updatePatient(patient);
                 JOptionPane.showMessageDialog(this, "Patient updated", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 refreshTable();
@@ -300,7 +301,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                patientDAO.deletePatient(selectedPatientId);
+                controller.deletePatient(selectedPatientId);
                 JOptionPane.showMessageDialog(this, "Patient deleted", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 refreshTable();
@@ -338,7 +339,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
 
     private void refreshTable() {
         try {
-            List<Patient> patients = patientDAO.getAllPatients();
+            List<Patient> patients = controller.getAllPatients();
             tableModel.setRowCount(0);
             for (Patient patient : patients) {
                 String summary = appointmentDAO.getStatusSummaryForPatient(patient.getId());
@@ -366,7 +367,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
         }
 
         try {
-            List<Patient> patients = patientDAO.searchPatients(searchTerm);
+            List<Patient> patients = controller.searchPatients(searchTerm);
             tableModel.setRowCount(0);
             for (Patient patient : patients) {
                 String summary = appointmentDAO.getStatusSummaryForPatient(patient.getId());
