@@ -11,6 +11,10 @@ public class Medication {
     private String status;
     private String notes;
 
+    // No-argument constructor
+    public Medication() {
+    }
+
     // Constructor
     public Medication(int id, int patientId, String medicationName, String dosage, String frequency, 
                      String startDate, String endDate, String status, String notes) {

@@ -252,7 +252,6 @@ public class DashboardPanel extends JPanel implements DataChangeListener {
 
     private void updateTodayAppointments(List<Appointment> appointments) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
         String today = dateFormat.format(new Date());
         
         JPanel listPanel = findAppointmentListPanel(this);

@@ -2,11 +2,9 @@ package clinicmanager.gui;
 
 import clinicmanager.dao.AppointmentDAO;
 import clinicmanager.dao.PatientDAO;
-import clinicmanager.dao.VisitDAO;
 import clinicmanager.dao.MedicalConditionDAO;
 import clinicmanager.dao.AllergyDAO;
 import clinicmanager.dao.MedicationDAO;
-import clinicmanager.dao.PrescriptionDAO;
 import clinicmanager.database.DatabaseConnection;
 import clinicmanager.models.Appointment;
 import clinicmanager.models.Patient;
@@ -29,11 +27,9 @@ import javax.swing.table.DefaultTableModel;
 public class MainFrame extends JFrame {
     private PatientDAO patientDAO;
     private AppointmentDAO appointmentDAO;
-    private VisitDAO visitDAO;
     private MedicalConditionDAO medicalConditionDAO;
     private AllergyDAO allergyDAO;
     private MedicationDAO medicationDAO;
-    private PrescriptionDAO prescriptionDAO;
     private Connection connection;
 
     public MainFrame() {
@@ -41,11 +37,9 @@ public class MainFrame extends JFrame {
             connection = DatabaseConnection.getConnection();
             patientDAO = new PatientDAO(connection);
             appointmentDAO = new AppointmentDAO(connection);
-            visitDAO = new VisitDAO(connection);
             medicalConditionDAO = new MedicalConditionDAO(connection);
             allergyDAO = new AllergyDAO(connection);
             medicationDAO = new MedicationDAO(connection);
-            prescriptionDAO = new PrescriptionDAO(connection);
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, 
                 "Database connection error: " + e.getMessage(), 

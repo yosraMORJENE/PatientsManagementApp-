@@ -9,6 +9,10 @@ public class MedicalCondition {
     private String resolvedDate;  // Date when condition was resolved
     private String notes;
 
+    // No-argument constructor
+    public MedicalCondition() {
+    }
+
     // Constructor (backward compatibility - no resolvedDate)
     public MedicalCondition(int id, int patientId, String conditionName, String diagnosisDate, String status, String notes) {
         this.id = id;

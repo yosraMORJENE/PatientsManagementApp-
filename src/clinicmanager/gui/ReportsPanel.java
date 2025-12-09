@@ -20,46 +20,154 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
         this.appointmentDAO = appointmentDAO;
         
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         setBackground(new Color(245, 250, 255));
         
+        JPanel mainContent = new JPanel(new BorderLayout());
+        mainContent.setBackground(new Color(245, 250, 255));
+        
+        // Title panel
+        JPanel titlePanel = createTitlePanel();
+        
+        // Button panel with better spacing
         JPanel buttonPanel = createButtonPanel();
         
-        add(buttonPanel, BorderLayout.NORTH);
+        // Info panel
+        JPanel infoPanel = createInfoPanel();
+        
+        mainContent.add(titlePanel, BorderLayout.NORTH);
+        mainContent.add(buttonPanel, BorderLayout.CENTER);
+        mainContent.add(infoPanel, BorderLayout.SOUTH);
+        
+        add(mainContent, BorderLayout.NORTH);
         
         // Register as data change listener
         DataChangeManager.getInstance().addListener(this);
     }
 
-    private JPanel createButtonPanel() {
-        JPanel panel = new JPanel(new GridLayout(3, 2, 15, 15));
-        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
-            "Export Reports", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
-        panel.setBackground(Color.WHITE);
+    private JPanel createTitlePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(245, 250, 255));
+        panel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         
-        JButton patientListBtn = MainFrame.createModernButton("Export Patient List (CSV)", 
-            new Color(46, 204, 113), new Color(39, 174, 96), 200, 50);
-        patientListBtn.addActionListener(e -> exportPatientList());
-        panel.add(patientListBtn);
+        JLabel titleLabel = new JLabel("Reports & Analytics");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setForeground(new Color(0, 102, 204));
         
-        JButton appointmentBtn = MainFrame.createModernButton("Export Appointments (CSV)", 
-            new Color(52, 152, 219), new Color(41, 128, 185), 200, 50);
-        appointmentBtn.addActionListener(e -> exportAppointments());
-        panel.add(appointmentBtn);
+        JLabel descLabel = new JLabel("Export clinic data to CSV format for analysis and record keeping");
+        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        descLabel.setForeground(new Color(100, 100, 100));
         
-        JButton statsBtn = MainFrame.createModernButton("Export Statistics (CSV)", 
-            new Color(155, 89, 182), new Color(142, 68, 173), 200, 50);
-        statsBtn.addActionListener(e -> exportStatistics());
-        panel.add(statsBtn);
-        
-        JButton openFolderBtn = MainFrame.createModernButton("Open Reports Folder", 
-            new Color(230, 126, 34), new Color(209, 109, 25), 200, 50);
-        openFolderBtn.addActionListener(e -> openReportsFolder());
-        panel.add(openFolderBtn);
+        panel.add(titleLabel, BorderLayout.NORTH);
+        panel.add(descLabel, BorderLayout.SOUTH);
         
         return panel;
     }
+
+    private JPanel createInfoPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(245, 250, 255));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
+        
+        
+        
+        return panel;
+    }
+
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel(new GridLayout(2, 2, 25, 25));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
+                "Export Options", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
+                new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)));
+        
+        JPanel patientCard = createReportCard("Export Patient List", 
+            "Export all patient records to CSV", new Color(46, 204, 113), e -> exportPatientList());
+        panel.add(patientCard);
+        
+        JPanel appointmentCard = createReportCard("Export Appointments", 
+            "Export all appointment records to CSV", new Color(52, 152, 219), e -> exportAppointments());
+        panel.add(appointmentCard);
+        
+        JPanel statsCard = createReportCard("Export Statistics", 
+            "Export clinic statistics and metrics to CSV", new Color(155, 89, 182), e -> exportStatistics());
+        panel.add(statsCard);
+        
+        JPanel folderCard = createReportCard("Open Reports Folder", 
+            "Open the reports directory in file explorer", new Color(230, 126, 34), e -> openReportsFolder());
+        panel.add(folderCard);
+        
+        return panel;
+    }
+
+    private JPanel createReportCard(String title, String description, Color bgColor, java.awt.event.ActionListener action) {
+        JPanel card = new JPanel(new BorderLayout(10, 8));
+        card.setBackground(bgColor);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createRaisedBevelBorder(),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)));
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        titleLabel.setForeground(Color.WHITE);
+        
+        JLabel descLabel = new JLabel(description);
+        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        descLabel.setForeground(new Color(220, 220, 220));
+        
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(descLabel, BorderLayout.SOUTH);
+        
+        // Add click listener for the card
+        java.awt.event.MouseAdapter mouseAdapter = new java.awt.event.MouseAdapter() {
+            private Color originalColor = bgColor;
+            
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                try {
+                    action.actionPerformed(null);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+            
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                card.setBackground(bgColor.darker());
+                card.repaint();
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                card.setBackground(originalColor);
+                card.repaint();
+            }
+        };
+        
+        card.addMouseListener(mouseAdapter);
+        titleLabel.addMouseListener(mouseAdapter);
+        descLabel.addMouseListener(mouseAdapter);
+        
+        return card;
+    }
+
+    private JButton createReportButton(String title, String description, Color bgColor, Color hoverColor) {
+        JButton button = new JButton(title);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setForeground(Color.WHITE);
+        button.setBackground(bgColor);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setPreferredSize(new Dimension(200, 70));
+        
+        return button;
+    }
+
 
     private void exportPatientList() {
         try {

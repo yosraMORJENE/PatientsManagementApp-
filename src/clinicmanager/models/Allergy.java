@@ -8,6 +8,10 @@ public class Allergy {
     private String severity;
     private String notes;
 
+    // No-argument constructor
+    public Allergy() {
+    }
+
     // Constructor
     public Allergy(int id, int patientId, String allergen, String reaction, String severity, String notes) {
         this.id = id;
