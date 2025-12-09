@@ -8,7 +8,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 // business logic for appointments
-public class AppointmentController {
+public class AppointmentController implements IAppointmentController {
     private final AppointmentDAO appointmentDAO;
     private final PatientDAO patientDAO;
 

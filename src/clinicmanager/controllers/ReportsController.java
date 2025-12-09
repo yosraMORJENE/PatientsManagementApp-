@@ -11,7 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 // business logic for reports and exports
-public class ReportsController {
+public class ReportsController implements IReportsController {
     private final AppointmentDAO appointmentDAO;
     private final PatientDAO patientDAO;
 

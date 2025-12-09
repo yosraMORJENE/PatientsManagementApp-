@@ -341,3 +341,33 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
     public void onMedicalHistoryChanged() {
     }
 }
+//csv how :     
+//simple get data from patients.dao 
+//create csv file with filewriter writer
+// write data as csv writer.write 
+// 1get data from dao
+//List<Patient> patients = patientDAO.getAllPatients();
+
+//2  create reports dir if not exists
+//java.io.File reportsDir = new java.io.File("reports");
+//if (!reportsDir.exists()) {
+ //   reportsDir.mkdir();
+
+//3 create file with timestamp
+//String timestamp = new SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new Date());
+//java.io.File file = new java.io.File("reports/PatientList_" + timestamp + ".csv");
+
+//4 filewriter to write csv
+//java.io.FileWriter writer = new java.io.FileWriter(file);
+
+//5 write CSV headers
+//writer.write("ID,First Name,Last Name,Phone,Email,Address,Date of Birth\n");
+
+/// 6. Transform each object to CSV row
+//for (Patient p : patients) {
+    //writer.write(String.format("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%s\n",
+      //  p.getId(),
+        
+      //p.getFirstName(),
+        //p.getLastName(),
+        

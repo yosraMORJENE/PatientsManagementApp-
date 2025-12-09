@@ -323,18 +323,19 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
 
     @Override
     public void onPatientsChanged() {
-        // Reload patient list when patients change
+        // reload patient list when patients change
         loadPatients();
     }
 
     @Override
     public void onAppointmentsChanged() {
-        // Refresh appointment table when appointments change
+        // rfresh appointment table when appointments change
         refreshTable();
     }
 
     @Override
     public void onMedicalHistoryChanged() {
-        // Can be implemented if needed
+        // if need
     }
 }
+//ya shoumiiiii

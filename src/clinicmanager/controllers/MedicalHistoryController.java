@@ -12,7 +12,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 // business logic for medical history management
-public class MedicalHistoryController {
+public class MedicalHistoryController implements IMedicalHistoryController {
     private final PatientDAO patientDAO;
     private final MedicalConditionDAO medicalConditionDAO;
     private final AllergyDAO allergyDAO;

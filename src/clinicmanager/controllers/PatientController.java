@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 // business logic for patients
-public class PatientController {
+public class PatientController implements IPatientController {
     private final PatientDAO patientDAO;
 
     public PatientController(PatientDAO patientDAO) {

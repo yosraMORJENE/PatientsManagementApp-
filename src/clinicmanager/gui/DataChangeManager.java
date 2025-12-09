@@ -3,10 +3,9 @@ package clinicmanager.gui;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Singleton manager for broadcasting data changes across panels
- * Allows panels to register as listeners and be notified when data changes
- */
+// Singleton manager for broadcasting data changes across panels
+  //Allows panels to register as listeners and be notified when data changes
+ 
 public class DataChangeManager {
     private static DataChangeManager instance;
     private List<DataChangeListener> listeners = new ArrayList<>();
@@ -14,9 +13,8 @@ public class DataChangeManager {
     private DataChangeManager() {
     }
     
-    /**
-     * Get the singleton instance
-     */
+    // Get the singleton instance
+     
     public static synchronized DataChangeManager getInstance() {
         if (instance == null) {
             instance = new DataChangeManager();
@@ -24,25 +22,22 @@ public class DataChangeManager {
         return instance;
     }
     
-    /**
-     * Register a listener to be notified of data changes
-     */
+    // Register a listener to be notified of data changes
+   
     public void addListener(DataChangeListener listener) {
         if (!listeners.contains(listener)) {
             listeners.add(listener);
         }
     }
     
-    /**
-     * Unregister a listener
-     */
+    // Unregister a listener
+   
     public void removeListener(DataChangeListener listener) {
         listeners.remove(listener);
     }
     
-    /**
-     * Notify all listeners that patients have changed
-     */
+    // Notify all listeners that patients have changed
+   
     public void notifyPatientsChanged() {
         for (DataChangeListener listener : listeners) {
             try {
@@ -53,9 +48,8 @@ public class DataChangeManager {
         }
     }
     
-    /**
-     * Notify all listeners that appointments have changed
-     */
+    // Notify all listeners that appointments have changed
+     
     public void notifyAppointmentsChanged() {
         for (DataChangeListener listener : listeners) {
             try {
@@ -66,9 +60,8 @@ public class DataChangeManager {
         }
     }
     
-    /**
-     * Notify all listeners that medical history has changed
-     */
+    // Notify all listeners that medical history has changed
+    
     public void notifyMedicalHistoryChanged() {
         for (DataChangeListener listener : listeners) {
             try {
@@ -79,3 +72,4 @@ public class DataChangeManager {
         }
     }
 }
+//

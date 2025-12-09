@@ -11,7 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 // business logic for dashboard
-public class DashboardController {
+public class DashboardController implements IDashboardController {
     private final PatientDAO patientDAO;
     private final AppointmentDAO appointmentDAO;
 
