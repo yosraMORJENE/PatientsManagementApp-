@@ -12,7 +12,7 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-public class AppointmentPanel extends JPanel {
+public class AppointmentPanel extends JPanel implements DataChangeListener {
     private final AppointmentDAO appointmentDAO;
     private final PatientDAO patientDAO;
     private JTable appointmentTable;
@@ -38,6 +38,9 @@ public class AppointmentPanel extends JPanel {
         add(formPanel, BorderLayout.NORTH);
         add(tablePanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
+        
+        // Register as data change listener
+        DataChangeManager.getInstance().addListener(this);
 
         refreshTable();
         loadPatients();
@@ -216,6 +219,8 @@ public class AppointmentPanel extends JPanel {
             clearForm();
             refreshTable();
             loadPatients();
+            // Notify other panels that appointments have changed
+            DataChangeManager.getInstance().notifyAppointmentsChanged();
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error scheduling appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -258,6 +263,8 @@ public class AppointmentPanel extends JPanel {
                 clearForm();
                 refreshTable();
                 loadPatients();
+                // Notify other panels that appointments have changed
+                DataChangeManager.getInstance().notifyAppointmentsChanged();
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error updating appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -281,6 +288,8 @@ public class AppointmentPanel extends JPanel {
                 clearForm();
                 refreshTable();
                 loadPatients();
+                // Notify other panels that appointments have changed
+                DataChangeManager.getInstance().notifyAppointmentsChanged();
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error cancelling appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -368,5 +377,22 @@ public class AppointmentPanel extends JPanel {
         public String toString() {
             return name;
         }
+    }
+
+    @Override
+    public void onPatientsChanged() {
+        // Reload patient list when patients change
+        loadPatients();
+    }
+
+    @Override
+    public void onAppointmentsChanged() {
+        // Refresh appointment table when appointments change
+        refreshTable();
+    }
+
+    @Override
+    public void onMedicalHistoryChanged() {
+        // Can be implemented if needed
     }
 }

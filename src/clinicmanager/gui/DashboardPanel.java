@@ -11,7 +11,7 @@ import java.util.Date;
 import java.util.List;
 import javax.swing.*;
 
-public class DashboardPanel extends JPanel {
+public class DashboardPanel extends JPanel implements DataChangeListener {
     private final PatientDAO patientDAO;
     private final AppointmentDAO appointmentDAO;
 
@@ -28,6 +28,9 @@ public class DashboardPanel extends JPanel {
         
         add(statsPanel, BorderLayout.NORTH);
         add(chartsPanel, BorderLayout.CENTER);
+        
+        // Register as data change listener
+        DataChangeManager.getInstance().addListener(this);
         
         refreshStats();
     }
@@ -81,41 +84,31 @@ public class DashboardPanel extends JPanel {
     }
 
     private JPanel createChartsPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 2, 20, 20));
-        panel.setBackground(new Color(245, 250, 255));
-        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
-            "Appointment Status Breakdown", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
+        JPanel todayPanel = new JPanel(new BorderLayout(10, 10));
+        todayPanel.setBackground(new Color(245, 250, 255));
+        todayPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
+            "Today's Appointments", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
             new Font("Segoe UI", Font.BOLD, 14), new Color(0, 102, 204)));
         
-        JPanel statusPanel = new JPanel(new GridLayout(4, 1, 5, 5));
-        statusPanel.setBackground(Color.WHITE);
-        statusPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        statusPanel.add(createStatusBar("Scheduled", "0", new Color(52, 152, 219), "scheduled"));
-        statusPanel.add(createStatusBar("Completed", "0", new Color(46, 204, 113), "completed_status"));
-        statusPanel.add(createStatusBar("Missed", "0", new Color(231, 76, 60), "missed_status"));
-        statusPanel.add(createStatusBar("Cancelled", "0", new Color(149, 165, 166), "cancelled"));
+        JPanel appointmentListPanel = new JPanel();
+        appointmentListPanel.setLayout(new BoxLayout(appointmentListPanel, BoxLayout.Y_AXIS));
+        appointmentListPanel.setBackground(Color.WHITE);
+        appointmentListPanel.setName("appointmentListPanel");
         
-        panel.add(statusPanel);
+        JScrollPane scrollPane = new JScrollPane(appointmentListPanel);
+        scrollPane.setBackground(Color.WHITE);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
         
-        JPanel todayPanel = new JPanel(new BorderLayout());
-        todayPanel.setBackground(Color.WHITE);
-        todayPanel.setBorder(BorderFactory.createTitledBorder("Today's Appointments"));
-        
-        JTextArea todayArea = new JTextArea();
-        todayArea.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        todayArea.setEditable(false);
-        todayArea.setLineWrap(true);
-        todayArea.setWrapStyleWord(true);
-        todayArea.setName("todayArea");
-        todayArea.setText("Loading today's appointments...");
-        
-        todayPanel.add(new JScrollPane(todayArea), BorderLayout.CENTER);
-        
-        panel.add(todayPanel);
+        contentPanel.add(scrollPane, BorderLayout.CENTER);
+        todayPanel.add(contentPanel, BorderLayout.CENTER);
         
         JButton refreshBtn = MainFrame.createModernButton("Refresh", 
-            new Color(52, 152, 219), new Color(41, 128, 185), 100, 30);
+            new Color(52, 152, 219), new Color(41, 128, 185), 120, 35);
         refreshBtn.addActionListener(e -> refreshStats());
         
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -124,7 +117,7 @@ public class DashboardPanel extends JPanel {
         
         JPanel wrapperPanel = new JPanel(new BorderLayout());
         wrapperPanel.setBackground(new Color(245, 250, 255));
-        wrapperPanel.add(panel, BorderLayout.CENTER);
+        wrapperPanel.add(todayPanel, BorderLayout.CENTER);
         wrapperPanel.add(buttonPanel, BorderLayout.SOUTH);
         
         return wrapperPanel;
@@ -149,6 +142,84 @@ public class DashboardPanel extends JPanel {
         return panel;
     }
 
+    private JPanel createAppointmentCard(String time, String patientName, String reason, String status) {
+        JPanel card = new JPanel(new BorderLayout(10, 5));
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
+            BorderFactory.createEmptyBorder(12, 15, 12, 15)));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        
+        // Status indicator color
+        Color statusColor = getStatusColor(status);
+        
+        // Time and status
+        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        timePanel.setBackground(Color.WHITE);
+        
+        JLabel timeLabel = new JLabel(time);
+        timeLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        timeLabel.setForeground(new Color(50, 50, 50));
+        timePanel.add(timeLabel);
+        
+        JLabel statusLabel = new JLabel(status.toUpperCase());
+        statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        statusLabel.setForeground(Color.WHITE);
+        statusLabel.setBackground(statusColor);
+        statusLabel.setOpaque(true);
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(3, 8, 3, 8));
+        timePanel.add(statusLabel);
+        
+        // Patient name
+        JLabel patientLabel = new JLabel(patientName);
+        patientLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        patientLabel.setForeground(new Color(0, 102, 204));
+        
+        // Reason
+        JLabel reasonLabel = new JLabel();
+        if (reason != null && !reason.isEmpty()) {
+            reasonLabel.setText("Reason: " + reason);
+        } else {
+            reasonLabel.setText("No reason specified");
+        }
+        reasonLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        reasonLabel.setForeground(new Color(100, 100, 100));
+        
+        // Details panel
+        JPanel detailsPanel = new JPanel();
+        detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
+        detailsPanel.setBackground(Color.WHITE);
+        detailsPanel.add(patientLabel);
+        detailsPanel.add(Box.createVerticalStrut(3));
+        detailsPanel.add(reasonLabel);
+        
+        // Left indicator bar
+        JPanel indicatorBar = new JPanel();
+        indicatorBar.setBackground(statusColor);
+        indicatorBar.setPreferredSize(new Dimension(4, 80));
+        
+        card.add(indicatorBar, BorderLayout.WEST);
+        card.add(timePanel, BorderLayout.NORTH);
+        card.add(detailsPanel, BorderLayout.CENTER);
+        
+        return card;
+    }
+
+    private Color getStatusColor(String status) {
+        if (status == null) return new Color(52, 152, 219);
+        switch (status.toLowerCase()) {
+            case "completed":
+                return new Color(46, 204, 113);
+            case "missed":
+                return new Color(231, 76, 60);
+            case "cancelled":
+                return new Color(149, 165, 166);
+            case "scheduled":
+            default:
+                return new Color(52, 152, 219);
+        }
+    }
+
     private void refreshStats() {
         try {
             List<Patient> patients = patientDAO.getAllPatients();
@@ -158,16 +229,12 @@ public class DashboardPanel extends JPanel {
             int totalAppts = appointments.size();
             int completedAppts = 0;
             int missedAppts = 0;
-            int scheduledAppts = 0;
-            int cancelledAppts = 0;
             
             for (Appointment apt : appointments) {
                 String status = apt.getStatus();
                 if (status != null) {
                     if (status.equals("completed")) completedAppts++;
                     else if (status.equals("missed")) missedAppts++;
-                    else if (status.equals("scheduled")) scheduledAppts++;
-                    else if (status.equals("cancelled")) cancelledAppts++;
                 }
             }
             
@@ -175,11 +242,6 @@ public class DashboardPanel extends JPanel {
             updateStatCard("Total Appointments", totalAppts);
             updateStatCard("Completed Appointments", completedAppts);
             updateStatCard("Missed Appointments", missedAppts);
-            
-            updateStatusBar("scheduled", scheduledAppts);
-            updateStatusBar("completed_status", completedAppts);
-            updateStatusBar("missed_status", missedAppts);
-            updateStatusBar("cancelled", cancelledAppts);
             
             updateTodayAppointments(appointments);
             
@@ -189,53 +251,61 @@ public class DashboardPanel extends JPanel {
     }
 
     private void updateTodayAppointments(List<Appointment> appointments) {
-        StringBuilder text = new StringBuilder();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
         String today = dateFormat.format(new Date());
         
-        int todayCount = 0;
+        JPanel listPanel = findAppointmentListPanel(this);
+        if (listPanel == null) return;
+        
+        listPanel.removeAll();
+        
+        boolean hasTodayAppointments = false;
+        
         for (Appointment apt : appointments) {
             if (apt.getAppointmentDate() != null && apt.getAppointmentDate().startsWith(today)) {
-                todayCount++;
+                hasTodayAppointments = true;
                 try {
                     Patient patient = patientDAO.getPatientById(apt.getPatientId());
-                    String patientName = patient != null ? patient.getFirstName() + " " + patient.getLastName() : "Unknown";
+                    String patientName = patient != null ? patient.getFirstName() + " " + patient.getLastName() : "Unknown Patient";
+                    String time = apt.getAppointmentDate().substring(11);
+                    String reason = apt.getReason() != null ? apt.getReason() : "";
+                    String status = apt.getStatus() != null ? apt.getStatus() : "scheduled";
                     
-                    text.append(String.format("[%s] %s - %s\n", 
-                        apt.getStatus() != null ? apt.getStatus().toUpperCase() : "SCHEDULED",
-                        apt.getAppointmentDate().substring(11),
-                        patientName));
-                    if (apt.getReason() != null && !apt.getReason().isEmpty()) {
-                        text.append("   Reason: ").append(apt.getReason()).append("\n");
-                    }
-                    text.append("\n");
+                    JPanel card = createAppointmentCard(time, patientName, reason, status);
+                    listPanel.add(card);
                 } catch (SQLException e) {
-                    text.append(String.format("[%s] %s - Patient ID: %d\n\n", 
-                        apt.getStatus() != null ? apt.getStatus().toUpperCase() : "SCHEDULED",
-                        apt.getAppointmentDate().substring(11),
-                        apt.getPatientId()));
+                    // Skip this appointment if patient info can't be loaded
                 }
             }
         }
         
-        if (todayCount == 0) {
-            text.append("No appointments scheduled for today.");
-        } else {
-            text.insert(0, String.format("=== %d Appointment(s) Today ===\n\n", todayCount));
+        if (!hasTodayAppointments) {
+            JPanel emptyPanel = new JPanel(new BorderLayout());
+            emptyPanel.setBackground(Color.WHITE);
+            emptyPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
+            emptyPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            
+            JLabel emptyLabel = new JLabel("📅 No appointments scheduled for today");
+            emptyLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            emptyLabel.setForeground(new Color(150, 150, 150));
+            emptyLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            
+            emptyPanel.add(emptyLabel, BorderLayout.CENTER);
+            listPanel.add(emptyPanel);
         }
         
-        JTextArea todayArea = findTodayArea(this);
-        if (todayArea != null) {
-            todayArea.setText(text.toString());
-        }
+        listPanel.add(Box.createVerticalGlue());
+        listPanel.revalidate();
+        listPanel.repaint();
     }
     
-    private JTextArea findTodayArea(Container container) {
+    private JPanel findAppointmentListPanel(Container container) {
         for (Component comp : container.getComponents()) {
-            if (comp instanceof JTextArea && "todayArea".equals(comp.getName())) {
-                return (JTextArea) comp;
+            if (comp instanceof JPanel && "appointmentListPanel".equals(comp.getName())) {
+                return (JPanel) comp;
             } else if (comp instanceof Container) {
-                JTextArea result = findTodayArea((Container) comp);
+                JPanel result = findAppointmentListPanel((Container) comp);
                 if (result != null) {
                     return result;
                 }
@@ -262,33 +332,35 @@ public class DashboardPanel extends JPanel {
     }
 
     private void updateTodayAppointmentsError(String errorMsg) {
-        JTextArea todayArea = findTodayArea(this);
-        if (todayArea != null) {
-            todayArea.setText("⚠ " + errorMsg);
-            todayArea.setForeground(Color.RED);
+        JPanel listPanel = findAppointmentListPanel(this);
+        if (listPanel != null) {
+            listPanel.removeAll();
+            JLabel errorLabel = new JLabel("⚠ " + errorMsg);
+            errorLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            errorLabel.setForeground(new Color(200, 50, 50));
+            JPanel errorPanel = new JPanel(new BorderLayout());
+            errorPanel.setBackground(Color.WHITE);
+            errorPanel.add(errorLabel, BorderLayout.NORTH);
+            listPanel.add(errorPanel);
+            listPanel.revalidate();
+            listPanel.repaint();
         }
     }
 
-    private void updateStatusBar(String name, int value) {
-        JPanel chartPanel = (JPanel) getComponent(1);
-        for (Component comp : chartPanel.getComponents()) {
-            if (comp instanceof JPanel) {
-                JPanel panel = (JPanel) comp;
-                for (Component child : panel.getComponents()) {
-                    if (child instanceof JPanel) {
-                        JPanel statusPanel = (JPanel) child;
-                        for (Component statusComp : statusPanel.getComponents()) {
-                            if (statusComp instanceof JLabel) {
-                                JLabel label = (JLabel) statusComp;
-                                if (name.equals(label.getName())) {
-                                    label.setText(String.valueOf(value));
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    @Override
+    public void onPatientsChanged() {
+        // Refresh statistics when patients change
+        refreshStats();
+    }
+
+    @Override
+    public void onAppointmentsChanged() {
+        // Refresh statistics when appointments change
+        refreshStats();
+    }
+
+    @Override
+    public void onMedicalHistoryChanged() {
+        // Can be implemented if needed
     }
 }

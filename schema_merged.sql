@@ -1,10 +1,15 @@
+-- Patients Management System - Complete Database Schema
+-- Merged from schema.sql and schema_fixes.sql
+-- This schema includes all base tables, fixes, and improvements
 
 
 BEGIN;
 
-
 SET search_path TO public;
 
+-- =========================
+-- Core Tables
+-- =========================
 
 CREATE TABLE IF NOT EXISTS patients (
     id SERIAL PRIMARY KEY,
@@ -36,37 +41,55 @@ CREATE TABLE IF NOT EXISTS appointments (
         ON UPDATE CASCADE
         ON DELETE CASCADE,
     CONSTRAINT ck_appointments_status
-        CHECK (status IN ('scheduled', 'completed', 'cancelled', 'no_show'))
+        CHECK (status IN ('scheduled', 'arrived', 'in-progress', 'completed', 'cancelled', 'no_show'))
 );
 
 COMMENT ON TABLE appointments IS 'Scheduled appointments for patients.';
-COMMENT ON COLUMN appointments.status IS 'Lifecycle status of the appointment.';
+COMMENT ON COLUMN appointments.status IS 'Status: scheduled, arrived, in-progress, completed, cancelled, no_show';
 
 CREATE TABLE IF NOT EXISTS visits (
     id SERIAL PRIMARY KEY,
-    appointment_id INTEGER NOT NULL,
+    patient_id INTEGER NOT NULL,
+    appointment_id INTEGER,
     visit_date TIMESTAMP NOT NULL,
     notes TEXT,
+    clinical_notes TEXT,
+    diagnosis TEXT,
+    treatment TEXT,
+    follow_up_notes TEXT,
+    status VARCHAR(20) DEFAULT 'completed',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_visits_patient
+        FOREIGN KEY (patient_id)
+        REFERENCES patients (id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
     CONSTRAINT fk_visits_appointment
         FOREIGN KEY (appointment_id)
         REFERENCES appointments (id)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT ck_visits_status
+        CHECK (status IN ('in-progress', 'completed', 'cancelled'))
 );
 
-COMMENT ON TABLE visits IS 'Clinical visit records linked to appointments.';
+COMMENT ON TABLE visits IS 'Clinical visit records - can be linked to appointments or recorded as walk-ins';
+COMMENT ON COLUMN visits.patient_id IS 'Direct reference to patient - supports walk-in visits';
+COMMENT ON COLUMN visits.appointment_id IS 'Optional link to appointment if visit was scheduled';
+COMMENT ON COLUMN visits.status IS 'Status of the visit: in-progress, completed, or cancelled';
 
 -- =========================
 -- Medical History Tables
 -- =========================
+
 CREATE TABLE IF NOT EXISTS medical_conditions (
     id SERIAL PRIMARY KEY,
     patient_id INTEGER NOT NULL,
     condition_name VARCHAR(255) NOT NULL,
     diagnosis_date DATE,
     status VARCHAR(50) DEFAULT 'active',
+    resolved_date DATE,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -78,6 +101,7 @@ CREATE TABLE IF NOT EXISTS medical_conditions (
 );
 
 COMMENT ON TABLE medical_conditions IS 'Medical conditions and diagnoses for patients.';
+COMMENT ON COLUMN medical_conditions.resolved_date IS 'Date when the condition was resolved (if status is inactive/resolved)';
 
 CREATE TABLE IF NOT EXISTS allergies (
     id SERIAL PRIMARY KEY,
@@ -92,7 +116,9 @@ CREATE TABLE IF NOT EXISTS allergies (
         FOREIGN KEY (patient_id)
         REFERENCES patients (id)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT ck_allergies_severity
+        CHECK (severity IN ('mild', 'moderate', 'severe', 'life-threatening'))
 );
 
 COMMENT ON TABLE allergies IS 'Known allergies and reactions for patients.';
@@ -121,9 +147,11 @@ COMMENT ON TABLE medications IS 'Current and historical medications for patients
 -- =========================
 -- Prescription Management Tables
 -- =========================
+
 CREATE TABLE IF NOT EXISTS prescriptions (
     id SERIAL PRIMARY KEY,
     patient_id INTEGER NOT NULL,
+    visit_id INTEGER,
     medication_name VARCHAR(255) NOT NULL,
     dosage VARCHAR(100),
     quantity INTEGER,
@@ -138,22 +166,21 @@ CREATE TABLE IF NOT EXISTS prescriptions (
         FOREIGN KEY (patient_id)
         REFERENCES patients (id)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_prescriptions_visit
+        FOREIGN KEY (visit_id)
+        REFERENCES visits (id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
 );
 
-COMMENT ON TABLE prescriptions IS 'Patient prescriptions with refill tracking.';
+COMMENT ON TABLE prescriptions IS 'Patient prescriptions with optional link to originating visit';
+COMMENT ON COLUMN prescriptions.visit_id IS 'Optional reference to the visit where prescription was written';
 
 -- =========================
--- Visit Notes/Clinical Records Tables
+-- Indexes for Query Performance
 -- =========================
-ALTER TABLE visits ADD COLUMN IF NOT EXISTS clinical_notes TEXT;
-ALTER TABLE visits ADD COLUMN IF NOT EXISTS diagnosis TEXT;
-ALTER TABLE visits ADD COLUMN IF NOT EXISTS treatment TEXT;
-ALTER TABLE visits ADD COLUMN IF NOT EXISTS follow_up_notes TEXT;
 
--- =========================
---  Indexes for query performance
--- =========================
 CREATE INDEX IF NOT EXISTS idx_patients_name ON patients (last_name, first_name);
 CREATE INDEX IF NOT EXISTS idx_patients_email ON patients (email);
 CREATE INDEX IF NOT EXISTS idx_patients_phone ON patients (phone_number);
@@ -161,17 +188,25 @@ CREATE INDEX IF NOT EXISTS idx_patients_phone ON patients (phone_number);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments (appointment_date);
 CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments (patient_id);
 
+CREATE INDEX IF NOT EXISTS idx_visits_patient ON visits (patient_id);
 CREATE INDEX IF NOT EXISTS idx_visits_date ON visits (visit_date);
 CREATE INDEX IF NOT EXISTS idx_visits_appointment ON visits (appointment_id);
 
 CREATE INDEX IF NOT EXISTS idx_medical_conditions_patient ON medical_conditions (patient_id);
+CREATE INDEX IF NOT EXISTS idx_medical_conditions_status ON medical_conditions (status, resolved_date);
+
 CREATE INDEX IF NOT EXISTS idx_allergies_patient ON allergies (patient_id);
+
 CREATE INDEX IF NOT EXISTS idx_medications_patient ON medications (patient_id);
+
 CREATE INDEX IF NOT EXISTS idx_prescriptions_patient ON prescriptions (patient_id);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_visit ON prescriptions (visit_id);
 CREATE INDEX IF NOT EXISTS idx_prescriptions_refill ON prescriptions (refill_date);
 
---  Updated-at maintenance triggers
 -- =========================
+-- Updated-at Maintenance Triggers
+-- =========================
+
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

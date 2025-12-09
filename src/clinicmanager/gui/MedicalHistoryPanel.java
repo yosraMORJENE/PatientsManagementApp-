@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.util.List;
 import javax.swing.*;
 
-public class MedicalHistoryPanel extends JPanel {
+public class MedicalHistoryPanel extends JPanel implements DataChangeListener {
     private final PatientDAO patientDAO;
     private final MedicalConditionDAO medicalConditionDAO;
     private final AllergyDAO allergyDAO;
@@ -53,6 +53,9 @@ public class MedicalHistoryPanel extends JPanel {
         
         add(patientPanel, BorderLayout.NORTH);
         add(historyTabs, BorderLayout.CENTER);
+        
+        // Register as data change listener
+        DataChangeManager.getInstance().addListener(this);
         
         loadPatients();
     }
@@ -180,6 +183,25 @@ public class MedicalHistoryPanel extends JPanel {
         @Override
         public String toString() {
             return name;
+        }
+    }
+
+    @Override
+    public void onPatientsChanged() {
+        // Reload patient list when patients change
+        loadPatients();
+    }
+
+    @Override
+    public void onAppointmentsChanged() {
+        // Can be implemented if needed
+    }
+
+    @Override
+    public void onMedicalHistoryChanged() {
+        // Refresh medical history when it changes
+        if (selectedPatientId != -1) {
+            loadMedicalHistory();
         }
     }
 }

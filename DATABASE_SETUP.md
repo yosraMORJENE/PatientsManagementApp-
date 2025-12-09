@@ -7,7 +7,7 @@ To activate all the new features (Medical History, Prescriptions, and Advanced S
 Run this command in your terminal:
 
 ```powershell
-psql -U postgres -d clinicmanager -f schema.sql
+psql -U postgres -d clinicmanager -f schema_merged.sql
 ```
 
 This will create all the new tables and columns needed for:
@@ -16,13 +16,15 @@ This will create all the new tables and columns needed for:
 - Medications tracking
 - Prescription management with refill dates
 - Enhanced Visit notes with clinical details
+- Walk-in visit support
+- Advanced appointment status tracking
 
 ### Option 2: Using pgAdmin
 
 1. Open pgAdmin
 2. Connect to your database
 3. Open the Query Tool
-4. Copy the entire contents of `schema.sql`
+4. Copy the entire contents of `schema_merged.sql`
 5. Paste it into the Query Tool
 6. Click Execute
 

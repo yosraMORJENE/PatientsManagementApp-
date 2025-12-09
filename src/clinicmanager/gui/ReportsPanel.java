@@ -11,7 +11,7 @@ import java.util.Date;
 import java.util.List;
 import javax.swing.*;
 
-public class ReportsPanel extends JPanel {
+public class ReportsPanel extends JPanel implements DataChangeListener {
     private final PatientDAO patientDAO;
     private final AppointmentDAO appointmentDAO;
 
@@ -26,6 +26,9 @@ public class ReportsPanel extends JPanel {
         JPanel buttonPanel = createButtonPanel();
         
         add(buttonPanel, BorderLayout.NORTH);
+        
+        // Register as data change listener
+        DataChangeManager.getInstance().addListener(this);
     }
 
     private JPanel createButtonPanel() {
@@ -196,5 +199,20 @@ public class ReportsPanel extends JPanel {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error opening folder: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    @Override
+    public void onPatientsChanged() {
+        // Data has changed, reports can use latest data on next export
+    }
+
+    @Override
+    public void onAppointmentsChanged() {
+        // Data has changed, reports can use latest data on next export
+    }
+
+    @Override
+    public void onMedicalHistoryChanged() {
+        // Can be implemented if needed
     }
 }

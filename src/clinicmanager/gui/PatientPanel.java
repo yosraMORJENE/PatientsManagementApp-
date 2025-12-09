@@ -12,7 +12,7 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-public class PatientPanel extends JPanel {
+public class PatientPanel extends JPanel implements DataChangeListener {
     private final PatientDAO patientDAO;
     private final AppointmentDAO appointmentDAO;
     private JTable patientTable;
@@ -43,6 +43,9 @@ public class PatientPanel extends JPanel {
         add(formPanel, BorderLayout.NORTH);
         add(tablePanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
+        
+        // Register as data change listener
+        DataChangeManager.getInstance().addListener(this);
         
         // Load initial data
         refreshTable();
@@ -236,6 +239,8 @@ public class PatientPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Patient saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
             clearForm();
             refreshTable();
+            // Notify other panels that patients have changed
+            DataChangeManager.getInstance().notifyPatientsChanged();
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error saving patient: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -275,6 +280,8 @@ public class PatientPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Patient updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 refreshTable();
+                // Notify other panels that patients have changed
+                DataChangeManager.getInstance().notifyPatientsChanged();
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error updating patient: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -297,6 +304,8 @@ public class PatientPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Patient deleted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 refreshTable();
+                // Notify other panels that patients have changed
+                DataChangeManager.getInstance().notifyPatientsChanged();
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error deleting patient: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -383,4 +392,21 @@ public class PatientPanel extends JPanel {
     private JPanel createDatePicker() {
         return MainFrame.createDatePickerPanel();
     }
+
+    @Override
+    public void onPatientsChanged() {
+        // Refresh the patient table when patients change
+        refreshTable();
+    }
+
+    @Override
+    public void onAppointmentsChanged() {
+        // Can be implemented if needed
+    }
+
+    @Override
+    public void onMedicalHistoryChanged() {
+        // Can be implemented if needed
+    }
+
 }
