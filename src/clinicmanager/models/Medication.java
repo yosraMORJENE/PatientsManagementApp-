@@ -11,11 +11,11 @@ public class Medication {
     private String status;
     private String notes;
 
-    // No-argument constructor
+    // empty constructor
     public Medication() {
     }
 
-    // Constructor
+    // regular constructor
     public Medication(int id, int patientId, String medicationName, String dosage, String frequency, 
                      String startDate, String endDate, String status, String notes) {
         this.id = id;
@@ -29,7 +29,7 @@ public class Medication {
         this.notes = notes;
     }
 
-    // Getters and Setters
+    // getters setters
     public int getId() {
         return id;
     }

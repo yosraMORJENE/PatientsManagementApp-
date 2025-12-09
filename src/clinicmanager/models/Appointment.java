@@ -5,22 +5,22 @@ public class Appointment {
     private int patientId;
     private String appointmentDate;
     private String reason;
-    private String status;  // scheduled, arrived, in-progress, completed, cancelled, no_show
+    private String status;  // like scheduled, arrived, completed etc
     private String createdAt;
     private String updatedAt;
 
-    // Constructor (backward compatibility)
+    // basic constructor
     public Appointment(int id, int patientId, String appointmentDate, String reason) {
         this.id = id;
         this.patientId = patientId;
         this.appointmentDate = appointmentDate;
         this.reason = reason;
-        this.status = "scheduled";  // default status
+        this.status = "scheduled";  // default
         this.createdAt = null;
         this.updatedAt = null;
     }
     
-    // Constructor with status and audit fields
+    // constructor with all fields
     public Appointment(int id, int patientId, String appointmentDate, String reason, 
                       String status, String createdAt, String updatedAt) {
         this.id = id;
@@ -32,7 +32,7 @@ public class Appointment {
         this.updatedAt = updatedAt;
     }
 
-    // Getters and Setters
+    // getters/setters
     public int getId() {
         return id;
     }

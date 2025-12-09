@@ -36,12 +36,12 @@ public class VisitDAO {
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             int paramIndex = 1;
             
-            // Set patient_id if column exists
+            // set patient id if it exists
             if (hasPatientId) {
                 stmt.setInt(paramIndex++, visit.getPatientId());
             }
             
-            // Set appointment_id (can be null now)
+            // appointment id or null
             if (visit.getAppointmentId() != null) {
                 stmt.setInt(paramIndex++, visit.getAppointmentId());
             } else {

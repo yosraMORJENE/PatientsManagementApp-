@@ -138,7 +138,7 @@ public class MedicalHistoryPanel extends JPanel implements DataChangeListener {
                 condition.setStatus(status);
                 condition.setNotes(notes);
                 
-                medicalConditionDAO.addCondition(condition);
+                medicalConditionDAO.addMedicalCondition(condition);
                 JOptionPane.showMessageDialog(this, "Condition added successfully!");
                 nameField.setText("");
                 notesArea.setText("");
@@ -165,7 +165,7 @@ public class MedicalHistoryPanel extends JPanel implements DataChangeListener {
 
         try {
             StringBuilder text = new StringBuilder();
-            for (MedicalCondition cond : medicalConditionDAO.getConditionsByPatientId(selectedPatientId)) {
+            for (MedicalCondition cond : medicalConditionDAO.getMedicalConditionsByPatientId(selectedPatientId)) {
                 text.append("* ").append(cond.getConditionName()).append(" [").append(cond.getStatus()).append("]\n");
                 text.append("  Diagnosed: ").append(cond.getDiagnosisDate()).append("\n");
                 text.append("  Notes: ").append(cond.getNotes()).append("\n\n");

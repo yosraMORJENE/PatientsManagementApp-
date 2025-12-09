@@ -12,8 +12,8 @@ public class MedicalConditionDAO {
         this.connection = connection;
     }
 
-    // Add a new medical condition
-    public void addCondition(MedicalCondition condition) throws SQLException {
+    // add condition
+    public void addMedicalCondition(MedicalCondition condition) throws SQLException {
         boolean hasResolvedDate = checkIfResolvedDateExists();
         String sql = hasResolvedDate ?
             "INSERT INTO medical_conditions (patient_id, condition_name, diagnosis_date, status, resolved_date, notes) VALUES (?, ?, ?, ?, ?, ?)" :
@@ -43,7 +43,7 @@ public class MedicalConditionDAO {
         }
     }
     
-    // Check if resolved_date column exists
+    // check if resolved_date colum exists
     private boolean checkIfResolvedDateExists() {
         try {
             String sql = "SELECT resolved_date FROM medical_conditions LIMIT 0";
@@ -56,8 +56,8 @@ public class MedicalConditionDAO {
         }
     }
 
-    // Get all conditions for a patient
-    public List<MedicalCondition> getConditionsByPatientId(int patientId) throws SQLException {
+    // gets all conditions for patient
+    public List<MedicalCondition> getMedicalConditionsByPatientId(int patientId) throws SQLException {
         List<MedicalCondition> conditions = new ArrayList<>();
         boolean hasResolvedDate = checkIfResolvedDateExists();
         String sql = "SELECT * FROM medical_conditions WHERE patient_id = ? ORDER BY diagnosis_date DESC";
@@ -93,8 +93,8 @@ public class MedicalConditionDAO {
         return conditions;
     }
 
-    // Update a medical condition
-    public void updateCondition(MedicalCondition condition) throws SQLException {
+    // update condition
+    public void updateMedicalCondition(MedicalCondition condition) throws SQLException {
         String sql = "UPDATE medical_conditions SET condition_name = ?, diagnosis_date = ?, status = ?, notes = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, condition.getConditionName());
@@ -110,8 +110,8 @@ public class MedicalConditionDAO {
         }
     }
 
-    // Delete a medical condition
-    public void deleteCondition(int conditionId) throws SQLException {
+    // delete condition
+    public void deleteMedicalCondition(int conditionId) throws SQLException {
         String sql = "DELETE FROM medical_conditions WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, conditionId);
@@ -119,11 +119,11 @@ public class MedicalConditionDAO {
         }
     }
 
-    // Get a specific condition
-    public MedicalCondition getConditionById(int conditionId) throws SQLException {
+    // get condition by id
+    public MedicalCondition getMedicalConditionById(int id) throws SQLException {
         String sql = "SELECT * FROM medical_conditions WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setInt(1, conditionId);
+            stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Date diagnosisDate = rs.getDate("diagnosis_date");

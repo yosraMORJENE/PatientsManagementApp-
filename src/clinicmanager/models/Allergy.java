@@ -12,8 +12,8 @@ public class Allergy {
     public Allergy() {
     }
 
-    // Constructor
-    public Allergy(int id, int patientId, String allergen, String reaction, String severity, String notes) {
+    // normal constructor
+    public Allergy(int id, int patientId, String allergen, String reaction, String severity) {
         this.id = id;
         this.patientId = patientId;
         this.allergen = allergen;

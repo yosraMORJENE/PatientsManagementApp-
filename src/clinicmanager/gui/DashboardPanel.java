@@ -36,7 +36,7 @@ public class DashboardPanel extends JPanel implements DataChangeListener {
     }
 
     private JPanel createStatsPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 2, 20, 20));
+        JPanel panel = new JPanel(new GridLayout(2, 3, 20, 20));
         panel.setBackground(new Color(245, 250, 255));
         panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), 
             "Quick Statistics", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP,
@@ -57,7 +57,11 @@ public class DashboardPanel extends JPanel implements DataChangeListener {
         JPanel missedCard = createStatCard("Missed Appointments", "0", new Color(231, 76, 60));
         missedCard.setName("missed");
         panel.add(missedCard);
-        
+
+        JPanel canceledCard = createStatCard("Canceled Appointments", "0", new Color(149, 165, 166));
+        canceledCard.setName("canceled");
+        panel.add(canceledCard);
+
         return panel;
     }
 
@@ -229,22 +233,25 @@ public class DashboardPanel extends JPanel implements DataChangeListener {
             int totalAppts = appointments.size();
             int completedAppts = 0;
             int missedAppts = 0;
-            
+            int canceledAppts = 0;
+
             for (Appointment apt : appointments) {
                 String status = apt.getStatus();
                 if (status != null) {
                     if (status.equals("completed")) completedAppts++;
                     else if (status.equals("missed")) missedAppts++;
+                    else if (status.equals("cancelled")) canceledAppts++;
                 }
             }
-            
+
             updateStatCard("Total Patients", totalPatients);
             updateStatCard("Total Appointments", totalAppts);
             updateStatCard("Completed Appointments", completedAppts);
             updateStatCard("Missed Appointments", missedAppts);
-            
+            updateStatCard("Canceled Appointments", canceledAppts);
+
             updateTodayAppointments(appointments);
-            
+
         } catch (SQLException e) {
             updateTodayAppointmentsError("Error loading data: " + e.getMessage());
         }
@@ -262,6 +269,12 @@ public class DashboardPanel extends JPanel implements DataChangeListener {
         boolean hasTodayAppointments = false;
         
         for (Appointment apt : appointments) {
+            String status = apt.getStatus() != null ? apt.getStatus() : "scheduled";
+            // dont show cancelled appointments
+            if ("cancelled".equalsIgnoreCase(status) || "no_show".equalsIgnoreCase(status)) {
+                continue;
+            }
+            
             if (apt.getAppointmentDate() != null && apt.getAppointmentDate().startsWith(today)) {
                 hasTodayAppointments = true;
                 try {
@@ -269,12 +282,11 @@ public class DashboardPanel extends JPanel implements DataChangeListener {
                     String patientName = patient != null ? patient.getFirstName() + " " + patient.getLastName() : "Unknown Patient";
                     String time = apt.getAppointmentDate().substring(11);
                     String reason = apt.getReason() != null ? apt.getReason() : "";
-                    String status = apt.getStatus() != null ? apt.getStatus() : "scheduled";
                     
                     JPanel card = createAppointmentCard(time, patientName, reason, status);
                     listPanel.add(card);
                 } catch (SQLException e) {
-                    // Skip this appointment if patient info can't be loaded
+                    // skip if cant load patient
                 }
             }
         }

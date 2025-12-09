@@ -39,7 +39,7 @@ public class DatePickerPanel extends JPanel {
         headerPanel.setBackground(new Color(245, 245, 245));
         headerPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        // Left side: Navigation buttons and month/year
+        // left side with nav and month display
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 0));
         leftPanel.setBackground(new Color(245, 245, 245));
 
@@ -125,7 +125,7 @@ public class DatePickerPanel extends JPanel {
     private void updateCalendarDays() {
         daysPanel.removeAll();
 
-        // Add day headers
+        // day headers at top
         String[] dayHeaders = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
         for (String header : dayHeaders) {
             JLabel label = new JLabel(header, JLabel.CENTER);
@@ -137,14 +137,14 @@ public class DatePickerPanel extends JPanel {
             daysPanel.add(label);
         }
 
-        // Calculate first day and number of days
+        // figure out first day and total days
         Calendar tempCal = (Calendar) calendar.clone();
         tempCal.set(Calendar.DAY_OF_MONTH, 1);
         int firstDayOfWeek = tempCal.get(Calendar.DAY_OF_WEEK) - 1;
         int daysInMonth = tempCal.getActualMaximum(Calendar.DAY_OF_MONTH);
         int currentDay = calendar.get(Calendar.DAY_OF_MONTH);
 
-        // Add empty cells before month starts
+        // add empty cells before month
         for (int i = 0; i < firstDayOfWeek; i++) {
             JPanel emptyCell = new JPanel();
             emptyCell.setBackground(new Color(250, 250, 250));
@@ -152,7 +152,7 @@ public class DatePickerPanel extends JPanel {
             daysPanel.add(emptyCell);
         }
 
-        // Add day buttons
+        // add all day buttons
         for (int day = 1; day <= daysInMonth; day++) {
             final int selectedDay = day;
             final int finalCurrentDay = currentDay;
@@ -163,7 +163,7 @@ public class DatePickerPanel extends JPanel {
             dayBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
             
             if (day == currentDay) {
-                // Current day - highlight in blue
+                // highlight todays date
                 dayBtn.setBackground(new Color(66, 133, 244));
                 dayBtn.setForeground(Color.WHITE);
                 dayBtn.setFont(new Font("Arial", Font.BOLD, 12));

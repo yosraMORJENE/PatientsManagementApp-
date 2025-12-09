@@ -12,7 +12,7 @@ public class MedicationDAO {
         this.connection = connection;
     }
 
-    // Add a new medication
+    // add medication
     public void addMedication(Medication medication) throws SQLException {
         String sql = "INSERT INTO medications (patient_id, medication_name, dosage, frequency, start_date, end_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -21,24 +21,24 @@ public class MedicationDAO {
             stmt.setString(3, medication.getDosage());
             stmt.setString(4, medication.getFrequency());
             
-            // Handle start date - be more lenient with empty/null values
+            // handle start date, dont be strict
             if (medication.getStartDate() != null && !medication.getStartDate().trim().isEmpty()) {
                 try {
                     stmt.setDate(5, java.sql.Date.valueOf(medication.getStartDate().trim()));
                 } catch (IllegalArgumentException e) {
-                    // If date format is invalid, set to null instead of failing
+                    // if date is bad just set null
                     stmt.setNull(5, java.sql.Types.DATE);
                 }
             } else {
                 stmt.setNull(5, java.sql.Types.DATE);
             }
             
-            // Handle end date - be more lenient with empty/null values
+            // end date too
             if (medication.getEndDate() != null && !medication.getEndDate().trim().isEmpty()) {
                 try {
                     stmt.setDate(6, java.sql.Date.valueOf(medication.getEndDate().trim()));
                 } catch (IllegalArgumentException e) {
-                    // If date format is invalid, set to null instead of failing
+                    // same thing, just set null
                     stmt.setNull(6, java.sql.Types.DATE);
                 }
             } else {
@@ -51,7 +51,7 @@ public class MedicationDAO {
         }
     }
 
-    // Get all medications for a patient
+    // get all medications
     public List<Medication> getMedicationsByPatientId(int patientId) throws SQLException {
         List<Medication> medications = new ArrayList<>();
         String sql = "SELECT * FROM medications WHERE patient_id = ? ORDER BY start_date DESC";
@@ -79,7 +79,7 @@ public class MedicationDAO {
         return medications;
     }
 
-    // Get active medications for a patient
+    // get just active medications
     public List<Medication> getActiveMedicationsByPatientId(int patientId) throws SQLException {
         List<Medication> medications = new ArrayList<>();
         String sql = "SELECT * FROM medications WHERE patient_id = ? AND status = 'active' ORDER BY start_date DESC";
@@ -107,7 +107,7 @@ public class MedicationDAO {
         return medications;
     }
 
-    // Update a medication
+    // update medication
     public void updateMedication(Medication medication) throws SQLException {
         String sql = "UPDATE medications SET medication_name = ?, dosage = ?, frequency = ?, start_date = ?, end_date = ?, status = ?, notes = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -131,7 +131,7 @@ public class MedicationDAO {
         }
     }
 
-    // Delete a medication
+    // delete medication
     public void deleteMedication(int medicationId) throws SQLException {
         String sql = "DELETE FROM medications WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -140,11 +140,11 @@ public class MedicationDAO {
         }
     }
 
-    // Get a specific medication
-    public Medication getMedicationById(int medicationId) throws SQLException {
+    // get specfic medication
+    public Medication getMedicationById(int id) throws SQLException {
         String sql = "SELECT * FROM medications WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setInt(1, medicationId);
+            stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Date startDate = rs.getDate("start_date");

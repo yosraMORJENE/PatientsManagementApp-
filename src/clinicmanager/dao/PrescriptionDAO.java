@@ -12,7 +12,7 @@ public class PrescriptionDAO {
         this.connection = connection;
     }
 
-    // Add a new prescription
+    // adds prescription
     public void addPrescription(Prescription prescription) throws SQLException {
         boolean hasVisitId = checkIfVisitIdExists();
         String sql = hasVisitId ?
@@ -51,7 +51,7 @@ public class PrescriptionDAO {
         }
     }
     
-    // Check if visit_id column exists
+    // check if visit_id col exists
     private boolean checkIfVisitIdExists() {
         try {
             String sql = "SELECT visit_id FROM prescriptions LIMIT 0";
@@ -64,7 +64,7 @@ public class PrescriptionDAO {
         }
     }
 
-    // Get all prescriptions for a patient
+    // get all prescriptions for patient
     public List<Prescription> getPrescriptionsByPatientId(int patientId) throws SQLException {
         List<Prescription> prescriptions = new ArrayList<>();
         boolean hasVisitId = checkIfVisitIdExists();
@@ -97,7 +97,7 @@ public class PrescriptionDAO {
         return prescriptions;
     }
 
-    // Get upcoming refills (within 7 days)
+    // gets refills that are comming up soon
     public List<Prescription> getUpcomingRefills() throws SQLException {
         List<Prescription> prescriptions = new ArrayList<>();
         boolean hasVisitId = checkIfVisitIdExists();
@@ -128,7 +128,7 @@ public class PrescriptionDAO {
         return prescriptions;
     }
 
-    // Update a prescription
+    // update prescription
     public void updatePrescription(Prescription prescription) throws SQLException {
         String sql = "UPDATE prescriptions SET medication_name = ?, dosage = ?, quantity = ?, frequency = ?, duration_days = ?, prescribed_date = ?, refill_date = ?, notes = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -153,7 +153,7 @@ public class PrescriptionDAO {
         }
     }
 
-    // Delete a prescription
+    // delete prescription
     public void deletePrescription(int prescriptionId) throws SQLException {
         String sql = "DELETE FROM prescriptions WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -162,11 +162,11 @@ public class PrescriptionDAO {
         }
     }
 
-    // Get a specific prescription
-    public Prescription getPrescriptionById(int prescriptionId) throws SQLException {
+    // get one prescription
+    public Prescription getPrescriptionById(int id) throws SQLException {
         String sql = "SELECT * FROM prescriptions WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setInt(1, prescriptionId);
+            stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Date prescribedDate = rs.getDate("prescribed_date");

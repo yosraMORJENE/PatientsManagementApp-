@@ -16,7 +16,7 @@ public class AppointmentDAO {
         this.connection = connection;
     }
 
-    // Create a new appointment
+    // add new apointment
     public void addAppointment(Appointment appointment) throws SQLException {
         boolean hasStatusColumn = checkIfStatusExists();
         String sql = hasStatusColumn ?
@@ -57,7 +57,7 @@ public class AppointmentDAO {
         }
     }
     
-    // Check if status column exists
+    // check if theres a status colum or not
     private boolean checkIfStatusExists() {
         try {
             String sql = "SELECT status FROM Appointments LIMIT 0";
@@ -70,13 +70,13 @@ public class AppointmentDAO {
         }
     }
 
-    // Get appointment status counts for a patient (scheduled/completed/missed)
+    // gets all the appointment counts per patient
     public AppointmentStatusCount getStatusCountsForPatient(int patientId) throws SQLException {
         boolean hasStatusColumn = checkIfStatusExists();
         AppointmentStatusCount counts = new AppointmentStatusCount();
 
         if (!hasStatusColumn) {
-            // Backward compatibility: if no status column, treat all as scheduled
+            // if no status just count everything as scheduled lol
             String fallbackSql = "SELECT COUNT(*) AS total FROM Appointments WHERE patient_id = ?";
             try (PreparedStatement stmt = connection.prepareStatement(fallbackSql)) {
                 stmt.setInt(1, patientId);
@@ -143,7 +143,7 @@ public class AppointmentDAO {
         int scheduled = 0, completed = 0, missed = 0;
         Timestamp firstScheduled = null, lastCompleted = null, lastMissed = null;
         
-        // Get scheduled appointments - use MIN (earliest date)
+        // grabs scheduled ones, using earliest date
         String scheduledSql = "SELECT COUNT(*) AS cnt, MIN(appointment_date) AS first_date FROM Appointments WHERE patient_id = ? AND (status IS NULL OR status = 'scheduled')";
         try (PreparedStatement stmt = connection.prepareStatement(scheduledSql)) {
             stmt.setInt(1, patientId);
@@ -155,7 +155,7 @@ public class AppointmentDAO {
             }
         }
         
-        // Get completed appointments - use MAX (latest date)
+        // completed ones, get latest date
         String completedSql = "SELECT COUNT(*) AS cnt, MAX(appointment_date) AS last_date FROM Appointments WHERE patient_id = ? AND status = 'completed'";
         try (PreparedStatement stmt = connection.prepareStatement(completedSql)) {
             stmt.setInt(1, patientId);
@@ -167,7 +167,7 @@ public class AppointmentDAO {
             }
         }
         
-        // Get missed appointments - use MAX (latest date)
+        // missed ones too
         String missedSql = "SELECT COUNT(*) AS cnt, MAX(appointment_date) AS last_date FROM Appointments WHERE patient_id = ? AND status = 'missed'";
         try (PreparedStatement stmt = connection.prepareStatement(missedSql)) {
             stmt.setInt(1, patientId);
@@ -192,7 +192,7 @@ public class AppointmentDAO {
         return " (" + label + sdf.format(ts) + ")";
     }
 
-    // Retrieve all appointments
+    // gets all appointments
     public List<Appointment> getAllAppointments() throws SQLException {
         List<Appointment> appointments = new ArrayList<>();
         boolean hasStatusColumn = checkIfStatusExists();
@@ -232,7 +232,7 @@ public class AppointmentDAO {
         return appointments;
     }
     
-    // Check if audit columns exist
+    // check if audit colums exist
     private boolean checkIfAuditColumnsExist() {
         try {
             String sql = "SELECT created_at, updated_at FROM Appointments LIMIT 0";
@@ -245,7 +245,7 @@ public class AppointmentDAO {
         }
     }
 
-    // Get appointments by patient ID
+    // get appts for specific patient
     public List<Appointment> getAppointmentsByPatientId(int patientId) throws SQLException {
         List<Appointment> appointments = new ArrayList<>();
         boolean hasStatusColumn = checkIfStatusExists();
@@ -288,29 +288,29 @@ public class AppointmentDAO {
         return appointments;
     }
 
-    // Check for appointment conflicts (improved logic)
-    // Only checks for conflicts with active appointments (not cancelled or no_show)
-    // Returns true if there are too many concurrent appointments (capacity check)
+    // checks if theres too many appointments at same time
+    // skips cancelled stuff
+    // returns true if maxed out
     public boolean hasConflict(String appointmentDate) throws SQLException {
-        return hasConflict(appointmentDate, -1, 5); // default: check existing, max 5 concurrent
+        return hasConflict(appointmentDate, -1, 5); // i set max to 5 appointments
     }
     
     public boolean hasConflict(String appointmentDate, int excludeAppointmentId, int maxConcurrent) throws SQLException {
         boolean hasStatusColumn = checkIfStatusExists();
         
-        // Only count active appointments (exclude cancelled and no_show)
+        // dont count canceled ones
         String sql = hasStatusColumn ?
             "SELECT COUNT(*) FROM Appointments WHERE appointment_date = ? AND id != ? AND status NOT IN ('cancelled', 'no_show')" :
             "SELECT COUNT(*) FROM Appointments WHERE appointment_date = ? AND id != ?";
         
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            // Convert string timestamp to java.sql.Timestamp
+            // covert the date string
             try {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
                 java.util.Date utilDate = sdf.parse(appointmentDate.trim());
                 stmt.setTimestamp(1, new java.sql.Timestamp(utilDate.getTime()));
             } catch (Exception e) {
-                // Try alternative format with seconds
+                // trying with seconds too
                 try {
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                     java.util.Date utilDate = sdf.parse(appointmentDate.trim());
@@ -325,27 +325,27 @@ public class AppointmentDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     int count = rs.getInt(1);
-                    return count >= maxConcurrent; // Conflict if at or over capacity
+                    return count >= maxConcurrent; // if over limit return true
                 }
             }
         }
         return false;
     }
 
-    // Update an existing appointment
+    // update appointment
     public void updateAppointment(Appointment appointment) throws SQLException {
-        String sql = "UPDATE Appointments SET patient_id = ?, appointment_date = ?, reason = ? WHERE id = ?";
+        String sql = "UPDATE Appointments SET patient_id = ?, appointment_date = ?, reason = ?, status = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, appointment.getPatientId());
             
-            // Convert string timestamp to java.sql.Timestamp
+            // gotta convert this too
             if (appointment.getAppointmentDate() != null && !appointment.getAppointmentDate().trim().isEmpty()) {
                 try {
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
                     java.util.Date utilDate = sdf.parse(appointment.getAppointmentDate().trim());
                     stmt.setTimestamp(2, new java.sql.Timestamp(utilDate.getTime()));
                 } catch (Exception e) {
-                    // Try alternative format with seconds
+                    // trying alt format
                     try {
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         java.util.Date utilDate = sdf.parse(appointment.getAppointmentDate().trim());
@@ -359,12 +359,13 @@ public class AppointmentDAO {
             }
             
             stmt.setString(3, appointment.getReason());
-            stmt.setInt(4, appointment.getId());
+            stmt.setString(4, appointment.getStatus() != null ? appointment.getStatus() : "scheduled");
+            stmt.setInt(5, appointment.getId());
             stmt.executeUpdate();
         }
     }
 
-    // Delete an appointment
+    // delete appointment
     public void deleteAppointment(int appointmentId) throws SQLException {
         String sql = "DELETE FROM Appointments WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -373,7 +374,7 @@ public class AppointmentDAO {
         }
     }
 
-    // Get appointment by ID
+    // get one apointment by id
     public Appointment getAppointmentById(int id) throws SQLException {
         String sql = "SELECT * FROM Appointments WHERE id = ?";
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");

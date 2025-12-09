@@ -13,7 +13,7 @@ public class AllergyDAO {
         this.connection = connection;
     }
 
-    // Add a new allergy
+    // add allergy
     public void addAllergy(Allergy allergy) throws SQLException {
         // Validate and normalize severity before inserting
         String severity = ValidationUtil.normalizeSeverity(allergy.getSeverity());
@@ -29,7 +29,7 @@ public class AllergyDAO {
         }
     }
 
-    // Get all allergies for a patient
+    // get allergies for patient
     public List<Allergy> getAllergiesByPatientId(int patientId) throws SQLException {
         List<Allergy> allergies = new ArrayList<>();
         String sql = "SELECT * FROM allergies WHERE patient_id = ? ORDER BY severity DESC";
@@ -42,8 +42,7 @@ public class AllergyDAO {
                         rs.getInt("patient_id"),
                         rs.getString("allergen"),
                         rs.getString("reaction"),
-                        rs.getString("severity"),
-                        rs.getString("notes")
+                        rs.getString("severity")
                     );
                     allergies.add(allergy);
                 }
@@ -52,7 +51,7 @@ public class AllergyDAO {
         return allergies;
     }
 
-    // Update an allergy
+    // update allergy
     public void updateAllergy(Allergy allergy) throws SQLException {
         String sql = "UPDATE allergies SET allergen = ?, reaction = ?, severity = ?, notes = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -65,7 +64,7 @@ public class AllergyDAO {
         }
     }
 
-    // Delete an allergy
+    // delete allergy
     public void deleteAllergy(int allergyId) throws SQLException {
         String sql = "DELETE FROM allergies WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -74,11 +73,11 @@ public class AllergyDAO {
         }
     }
 
-    // Get a specific allergy
-    public Allergy getAllergyById(int allergyId) throws SQLException {
+    // get allrgy by id
+    public Allergy getAllergyById(int id) throws SQLException {
         String sql = "SELECT * FROM allergies WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setInt(1, allergyId);
+            stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return new Allergy(
@@ -86,8 +85,7 @@ public class AllergyDAO {
                         rs.getInt("patient_id"),
                         rs.getString("allergen"),
                         rs.getString("reaction"),
-                        rs.getString("severity"),
-                        rs.getString("notes")
+                        rs.getString("severity")
                     );
                 }
             }

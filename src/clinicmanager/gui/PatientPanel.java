@@ -39,7 +39,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
 
         JPanel buttonPanel = createButtonPanel();
 
-        // Add components
+        // add everything
         add(formPanel, BorderLayout.NORTH);
         add(tablePanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
@@ -239,7 +239,7 @@ public class PatientPanel extends JPanel implements DataChangeListener {
             JOptionPane.showMessageDialog(this, "Patient saved", "Success", JOptionPane.INFORMATION_MESSAGE);
             clearForm();
             refreshTable();
-            // Notify other panels that patients have changed
+            // tell everyone patients changed
             DataChangeManager.getInstance().notifyPatientsChanged();
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error saving patient: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);

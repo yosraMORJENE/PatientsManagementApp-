@@ -46,7 +46,7 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
         panel.setBackground(new Color(245, 250, 255));
         panel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         
-        JLabel titleLabel = new JLabel("Reports & Analytics");
+        JLabel titleLabel = new JLabel("Reports and Analytics");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titleLabel.setForeground(new Color(0, 102, 204));
         
@@ -80,12 +80,64 @@ public class ReportsPanel extends JPanel implements DataChangeListener {
         JPanel statsCard = createReportCard("Export Statistics", 
             "Export clinic statistics and metrics to CSV", new Color(155, 89, 182), e -> exportStatistics());
         panel.add(statsCard);
-        
+
+        JPanel todayApptCard = createReportCard("Export Today's Appointments", 
+            "Export only today's appointments to CSV", new Color(241, 196, 15), e -> exportTodaysAppointments());
+        panel.add(todayApptCard);
+
         JPanel folderCard = createReportCard("Open Reports Folder", 
             "Open the reports directory in file explorer", new Color(230, 126, 34), e -> openReportsFolder());
         panel.add(folderCard);
-        
+
         return panel;
+    }
+
+    private void exportTodaysAppointments() {
+        try {
+            List<Appointment> appointments = appointmentDAO.getAllAppointments();
+            String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
+            java.io.File reportsDir = new java.io.File("reports");
+            if (!reportsDir.exists()) {
+                reportsDir.mkdir();
+            }
+
+            String timestamp = new SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new Date());
+            java.io.File file = new java.io.File("reports/TodaysAppointments_" + timestamp + ".csv");
+            java.io.FileWriter writer = new java.io.FileWriter(file);
+
+            writer.write("ID,Patient ID,Patient Name,Date & Time,Reason,Status\n");
+
+            int count = 0;
+            for (Appointment apt : appointments) {
+                if (apt.getAppointmentDate() != null && apt.getAppointmentDate().startsWith(today)) {
+                    try {
+                        Patient patient = patientDAO.getPatientById(apt.getPatientId());
+                        String patientName = patient != null ? patient.getFirstName() + " " + patient.getLastName() : "Unknown";
+                        writer.write(String.format("%d,%d,\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                            apt.getId(),
+                            apt.getPatientId(),
+                            patientName,
+                            apt.getAppointmentDate(),
+                            apt.getReason() != null ? apt.getReason() : "",
+                            apt.getStatus() != null ? apt.getStatus() : "scheduled"
+                        ));
+                        count++;
+                    } catch (SQLException e) {
+                        System.err.println("Error getting patient for appointment: " + e.getMessage());
+                    }
+                }
+            }
+
+            writer.close();
+            JOptionPane.showMessageDialog(this, 
+                "Successfully exported " + count + " appointments for today!\nFile: " + file.getAbsolutePath(), 
+                "Success", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error exporting today's appointments: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    // removed extra closing brace here
+
     }
 
     private JPanel createReportCard(String title, String description, Color bgColor, java.awt.event.ActionListener action) {

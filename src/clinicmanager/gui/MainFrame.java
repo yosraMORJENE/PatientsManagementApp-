@@ -52,28 +52,28 @@ public class MainFrame extends JFrame {
         setSize(1200, 750);
         setLocationRelativeTo(null);
         
-        // Set modern look and feel
+        // trying to make it look modern
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (ClassNotFoundException | InstantiationException |IllegalAccessException | UnsupportedLookAndFeelException e) {
         }
 
-        // Create tabbed pane with custom styling
+        // tabbed pane stuff
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         tabbedPane.setBackground(new Color(240, 248, 255));
         
-        // Add tabs
+        // adding all tabs
         tabbedPane.addTab("Dashboard", new DashboardPanel(patientDAO, appointmentDAO));
         tabbedPane.addTab("Patients", new PatientPanel(patientDAO, appointmentDAO));
         tabbedPane.addTab("Appointments", new AppointmentPanel(appointmentDAO, patientDAO));
         tabbedPane.addTab("Medical History", new MedicalHistoryPanel(patientDAO, medicalConditionDAO, allergyDAO, medicationDAO));
         tabbedPane.addTab("Reports", new ReportsPanel(patientDAO, appointmentDAO));
 
-        // Add tabbed pane to frame
+        // putting it in the frame
         add(tabbedPane, BorderLayout.CENTER);
         
-        // Add status bar
+        // bottom status bar thing
         JLabel statusBar = new JLabel(" Ready");
         statusBar.setBorder(BorderFactory.createLoweredBevelBorder());
         statusBar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -91,7 +91,7 @@ public class MainFrame extends JFrame {
         super.dispose();
     }
 
-    // Helper method to create date picker with calendar dialog
+    // makes a date picker
     public static JPanel createDatePickerPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setPreferredSize(new Dimension(180, 25));
@@ -101,11 +101,11 @@ public class MainFrame extends JFrame {
         dateField.setEditable(false);
         dateField.setBackground(Color.WHITE);
         
-        // Set default date
+        // setting default date
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         dateField.setText(sdf.format(new Date()));
         
-        // Store reference to text field in panel for easy retrieval
+        // storing the text field so i can get it later
         panel.putClientProperty("dateField", dateField);
         
         JButton calendarBtn = new JButton("📅");
@@ -115,7 +115,7 @@ public class MainFrame extends JFrame {
         calendarBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         calendarBtn.addActionListener(e -> showDatePickerDialog(dateField));
         
-        // Make text field clickable
+        // make the textfield clickable too
         dateField.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -129,7 +129,7 @@ public class MainFrame extends JFrame {
         return panel;
     }
     
-    // Helper method to create date and time picker with dialogs
+    // makes date+time picker
     public static JPanel createDateTimePickerPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setPreferredSize(new Dimension(220, 25));
@@ -139,11 +139,11 @@ public class MainFrame extends JFrame {
         dateTimeField.setEditable(false);
         dateTimeField.setBackground(Color.WHITE);
         
-        // Set default date and time
+        // default date/time
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         dateTimeField.setText(sdf.format(new Date()));
         
-        // Store reference to text field in panel for easy retrieval
+        // saving reference
         panel.putClientProperty("dateTimeField", dateTimeField);
         
         JButton pickerBtn = new JButton("📅");
@@ -153,7 +153,7 @@ public class MainFrame extends JFrame {
         pickerBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         pickerBtn.addActionListener(e -> showDateTimePickerDialog(dateTimeField));
         
-        // Make text field clickable
+        // make clickable
         dateTimeField.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -167,7 +167,7 @@ public class MainFrame extends JFrame {
         return panel;
     }
     
-    // Show date picker dialog
+    // shows the date picker popup
     private static void showDatePickerDialog(JTextField dateField) {
         Frame parentFrame = null;
         try {
@@ -181,7 +181,7 @@ public class MainFrame extends JFrame {
         dialog.setLocationRelativeTo(dateField);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         
-        // Parse current date
+        // trying to parse the date
         java.util.Date selectedDate = new java.util.Date();
         String currentDate = dateField.getText();
         if (currentDate != null && !currentDate.trim().isEmpty()) {
@@ -189,11 +189,11 @@ public class MainFrame extends JFrame {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                 selectedDate = sdf.parse(currentDate);
             } catch (Exception e) {
-                // Use current date if parsing fails
+                // whatever just use todays date
             }
         }
         
-        // Create date picker panel with modern design
+        // date picker panel
         DatePickerPanel datePickerPanel = new DatePickerPanel(selectedDate, date -> {
             dateField.setText(date);
             dialog.dispose();
@@ -203,7 +203,7 @@ public class MainFrame extends JFrame {
         dialog.setVisible(true);
     }
     
-    // Show date and time picker dialog
+    // shows date+time picker
     private static void showDateTimePickerDialog(JTextField dateTimeField) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(dateTimeField), "Select Date & Time", true);
         dialog.setSize(350, 450);
@@ -212,7 +212,7 @@ public class MainFrame extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        // Date picker panel
+        // date part
         JPanel datePanel = new JPanel(new BorderLayout());
         datePanel.setBorder(BorderFactory.createTitledBorder("Select Date"));
         

@@ -21,7 +21,7 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
     private JPanel dateField;
     private JTextField reasonField;
     private JComboBox<String> statusCombo;
-    private JButton saveButton, updateButton, deleteButton, clearButton, refreshButton;
+    private JButton saveButton, updateButton, clearButton, refreshButton;
     private int selectedAppointmentId = -1;
 
     public AppointmentPanel(AppointmentDAO appointmentDAO, PatientDAO patientDAO) {
@@ -39,7 +39,7 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         add(tablePanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
         
-        // Register as data change listener
+        // listen to data changes
         DataChangeManager.getInstance().addListener(this);
 
         refreshTable();
@@ -58,7 +58,7 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Patient Selection
+        // patient selector
         gbc.gridx = 0; gbc.gridy = 0;
         panel.add(new JLabel("Patient *:"), gbc);
         patientCombo = new JComboBox<>();
@@ -67,7 +67,7 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         gbc.gridx = 1;
         panel.add(patientCombo, gbc);
         
-        // Refresh patients button
+        // button to refresh patients
         JButton refreshPatientsBtn = new JButton("↻");
         refreshPatientsBtn.setPreferredSize(new Dimension(35, 25));
         refreshPatientsBtn.setToolTipText("Refresh patient list");
@@ -75,14 +75,14 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         gbc.gridx = 2;
         panel.add(refreshPatientsBtn, gbc);
 
-        // Appointment Date
+        // apointment date
         gbc.gridx = 0; gbc.gridy = 1;
         panel.add(new JLabel("Date & Time *:"), gbc);
         dateField = MainFrame.createDateTimePickerPanel();
         gbc.gridx = 1;
         panel.add(dateField, gbc);
 
-        // Reason
+        // reason textfield
         gbc.gridx = 0; gbc.gridy = 2;
         panel.add(new JLabel("Reason:"), gbc);
         reasonField = new JTextField(20);
@@ -90,7 +90,7 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         gbc.gridx = 1;
         panel.add(reasonField, gbc);
         
-        // Status
+        // status dropdown menu
         gbc.gridx = 0; gbc.gridy = 3;
         panel.add(new JLabel("Status *:"), gbc);
         statusCombo = new JComboBox<>(new String[]{"scheduled", "completed", "missed", "cancelled"});
@@ -152,17 +152,12 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
             new Color(0, 102, 204), new Color(0, 120, 240), 180, 40);
         updateButton.addActionListener(e -> updateAppointment());
 
-        deleteButton = MainFrame.createModernButton("Cancel Appointment", 
-            new Color(220, 20, 60), new Color(240, 40, 80), 180, 40);
-        deleteButton.addActionListener(e -> deleteAppointment());
-
         clearButton = MainFrame.createModernButton("Clear Form", 
             new Color(128, 128, 128), new Color(150, 150, 150), 180, 40);
         clearButton.addActionListener(e -> clearForm());
 
         panel.add(saveButton);
         panel.add(updateButton);
-        panel.add(deleteButton);
         panel.add(clearButton);
 
         return panel;
@@ -196,7 +191,7 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         }
 
         try {
-            // Check for conflicts
+            // see if theres conflicts
             if (appointmentDAO.hasConflict(dateTimeString)) {
                 int confirm = JOptionPane.showConfirmDialog(this, 
                     "Another appointment exists at this time. Do you want to schedule anyway?",
@@ -219,7 +214,7 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
             clearForm();
             refreshTable();
             loadPatients();
-            // Notify other panels that appointments have changed
+            // tell other parts theres new appointments
             DataChangeManager.getInstance().notifyAppointmentsChanged();
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error scheduling appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -259,11 +254,12 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
                     null);
                 
                 appointmentDAO.updateAppointment(appointment);
-                JOptionPane.showMessageDialog(this, "Appointment updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "appointment updated", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 refreshTable();
                 loadPatients();
-                // Notify other panels that appointments have changed
+                appointmentTable.clearSelection();
+                // notify other stuff
                 DataChangeManager.getInstance().notifyAppointmentsChanged();
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error updating appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -271,30 +267,6 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
         }
     }
 
-    private void deleteAppointment() {
-        if (selectedAppointmentId == -1) {
-            JOptionPane.showMessageDialog(this, "Please select an appointment to cancel.", "No Selection", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        int confirm = JOptionPane.showConfirmDialog(this, 
-            "Are you sure you want to cancel this appointment?", 
-            "Confirm Cancel", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        
-        if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                appointmentDAO.deleteAppointment(selectedAppointmentId);
-                JOptionPane.showMessageDialog(this, "Appointment cancelled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                clearForm();
-                refreshTable();
-                loadPatients();
-                // Notify other panels that appointments have changed
-                DataChangeManager.getInstance().notifyAppointmentsChanged();
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error cancelling appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
 
     private void clearForm() {
         selectedAppointmentId = -1;
@@ -311,7 +283,7 @@ public class AppointmentPanel extends JPanel implements DataChangeListener {
             selectedAppointmentId = (Integer) tableModel.getValueAt(row, 0);
             int patientId = (Integer) tableModel.getValueAt(row, 1);
             
-            // Set patient in combo
+            // find patient in dropdown
             for (int i = 0; i < patientCombo.getItemCount(); i++) {
                 PatientComboItem item = patientCombo.getItemAt(i);
                 if (item.getId() == patientId) {
