@@ -70,6 +70,128 @@ public class AppointmentDAO {
         }
     }
 
+    // Get appointment status counts for a patient (scheduled/completed/missed)
+    public AppointmentStatusCount getStatusCountsForPatient(int patientId) throws SQLException {
+        boolean hasStatusColumn = checkIfStatusExists();
+        AppointmentStatusCount counts = new AppointmentStatusCount();
+
+        if (!hasStatusColumn) {
+            // Backward compatibility: if no status column, treat all as scheduled
+            String fallbackSql = "SELECT COUNT(*) AS total FROM Appointments WHERE patient_id = ?";
+            try (PreparedStatement stmt = connection.prepareStatement(fallbackSql)) {
+                stmt.setInt(1, patientId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        counts.scheduled = rs.getInt("total");
+                    }
+                }
+            }
+            return counts;
+        }
+
+        String sql = "SELECT status, COUNT(*) AS cnt FROM Appointments WHERE patient_id = ? GROUP BY status";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, patientId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String status = rs.getString("status");
+                    int c = rs.getInt("cnt");
+                    if ("completed".equalsIgnoreCase(status)) {
+                        counts.completed = c;
+                    } else if ("missed".equalsIgnoreCase(status)) {
+                        counts.missed = c;
+                    } else if ("cancelled".equalsIgnoreCase(status)) {
+                        counts.cancelled = c;
+                    } else { // scheduled or any other
+                        counts.scheduled += c;
+                    }
+                }
+            }
+        }
+
+        return counts;
+    }
+
+    // Simple holder for appointment status counts
+    public static class AppointmentStatusCount {
+        public int scheduled;
+        public int completed;
+        public int missed;
+        public int cancelled;
+    }
+
+    // Summary string with counts and dates per status for a patient
+    public String getStatusSummaryForPatient(int patientId) throws SQLException {
+        boolean hasStatusColumn = checkIfStatusExists();
+        if (!hasStatusColumn) {
+            // Backward compatibility: show total as scheduled
+            String sql = "SELECT COUNT(*) AS total, MIN(appointment_date) AS first_date FROM Appointments WHERE patient_id = ?";
+            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+                stmt.setInt(1, patientId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int total = rs.getInt("total");
+                        Timestamp first = rs.getTimestamp("first_date");
+                        String firstStr = first != null ? new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(first) : "-";
+                        return String.format("Scheduled: %d (%s)", total, firstStr);
+                    }
+                }
+            }
+            return "Scheduled: 0";
+        }
+
+        int scheduled = 0, completed = 0, missed = 0;
+        Timestamp firstScheduled = null, lastCompleted = null, lastMissed = null;
+        
+        // Get scheduled appointments - use MIN (earliest date)
+        String scheduledSql = "SELECT COUNT(*) AS cnt, MIN(appointment_date) AS first_date FROM Appointments WHERE patient_id = ? AND (status IS NULL OR status = 'scheduled')";
+        try (PreparedStatement stmt = connection.prepareStatement(scheduledSql)) {
+            stmt.setInt(1, patientId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    scheduled = rs.getInt("cnt");
+                    firstScheduled = rs.getTimestamp("first_date");
+                }
+            }
+        }
+        
+        // Get completed appointments - use MAX (latest date)
+        String completedSql = "SELECT COUNT(*) AS cnt, MAX(appointment_date) AS last_date FROM Appointments WHERE patient_id = ? AND status = 'completed'";
+        try (PreparedStatement stmt = connection.prepareStatement(completedSql)) {
+            stmt.setInt(1, patientId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    completed = rs.getInt("cnt");
+                    lastCompleted = rs.getTimestamp("last_date");
+                }
+            }
+        }
+        
+        // Get missed appointments - use MAX (latest date)
+        String missedSql = "SELECT COUNT(*) AS cnt, MAX(appointment_date) AS last_date FROM Appointments WHERE patient_id = ? AND status = 'missed'";
+        try (PreparedStatement stmt = connection.prepareStatement(missedSql)) {
+            stmt.setInt(1, patientId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    missed = rs.getInt("cnt");
+                    lastMissed = rs.getTimestamp("last_date");
+                }
+            }
+        }
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
+        String schedStr = scheduled + formatDate(firstScheduled, sdf, "");
+        String compStr = completed + formatDate(lastCompleted, sdf, "last: ");
+        String missStr = missed + formatDate(lastMissed, sdf, "last: ");
+
+        return String.format("Scheduled: %s\nCompleted: %s\nMissed: %s", schedStr, compStr, missStr);
+    }
+
+    private String formatDate(Timestamp ts, java.text.SimpleDateFormat sdf, String label) {
+        if (ts == null) return "";
+        return " (" + label + sdf.format(ts) + ")";
+    }
+
     // Retrieve all appointments
     public List<Appointment> getAllAppointments() throws SQLException {
         List<Appointment> appointments = new ArrayList<>();
