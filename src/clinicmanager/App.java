@@ -1,6 +1,6 @@
 package clinicmanager;
 
-import clinicmanager.gui.LoginFrame;
+import clinicmanager.views.LoginFrame;
 import javax.swing.SwingUtilities;
 
 public class App {

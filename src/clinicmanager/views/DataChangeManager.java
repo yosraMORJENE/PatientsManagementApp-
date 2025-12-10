@@ -1,4 +1,4 @@
-package clinicmanager.gui;
+package clinicmanager.views;
 
 import java.util.ArrayList;
 import java.util.List;

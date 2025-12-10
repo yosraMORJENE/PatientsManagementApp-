@@ -1,4 +1,4 @@
-package clinicmanager.gui;
+package clinicmanager.views;
 
 /**
  * Interface for listening to data changes across panels

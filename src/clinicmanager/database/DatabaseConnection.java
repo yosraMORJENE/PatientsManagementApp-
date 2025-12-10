@@ -180,9 +180,7 @@ public class DatabaseConnection {
         }
     }
     
-    /**
-     * Fallback: Basic connection management without connection pooling
-     */
+   
     private static void initializeBasicConnection() {
         try {
             // Create a simple DataSource wrapper for basic connections

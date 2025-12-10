@@ -397,12 +397,8 @@ public class AppointmentDAO {
         return null;
     }
     
-    // ============== JAVA STREAMS EXAMPLES ==============
+    //  Exaemppp of Stream API with filter for date matching
     
-    /**
-     * Get today's appointments using streams
-     * Example of Stream API with filter for date matching
-     */
     public List<Appointment> getTodayAppointmentsStream() throws SQLException {
         List<Appointment> allAppointments = getAllAppointments();
         String today = LocalDate.now().toString();
@@ -413,10 +409,7 @@ public class AppointmentDAO {
             .collect(Collectors.toList());
     }
     
-    /**
-     * Get upcoming appointments using streams
-     * Example of Stream API with date filtering
-     */
+ //yjibli upcoming appointments using stream
     public List<Appointment> getUpcomingAppointmentsStream() throws SQLException {
         List<Appointment> allAppointments = getAllAppointments();
         String today = LocalDate.now().toString();
@@ -427,10 +420,8 @@ public class AppointmentDAO {
             .collect(Collectors.toList());
     }
     
-    /**
-     * Count appointments per patient
-     * Example of Stream API with groupingBy and counting
-     */
+    
+     //ehseb 9dh appoin lel patient
     public Map<Integer, Long> countAppointmentsPerPatientStream() throws SQLException {
         List<Appointment> allAppointments = getAllAppointments();
         return allAppointments.stream()
@@ -440,10 +431,7 @@ public class AppointmentDAO {
             ));
     }
     
-    /**
-     * Get appointments filtered by reason keyword using streams
-     * Example of Stream API with filter and contains
-     */
+   //filtri il appointments bel reason using stream
     public List<Appointment> filterAppointmentsByReasonStream(String keyword) throws SQLException {
         List<Appointment> allAppointments = getAllAppointments();
         return allAppointments.stream()

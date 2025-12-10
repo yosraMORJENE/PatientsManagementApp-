@@ -1,4 +1,4 @@
-package clinicmanager.gui;
+package clinicmanager.views;
 
 import clinicmanager.dao.UserDAO;
 import clinicmanager.database.DatabaseConnection;

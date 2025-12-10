@@ -1,4 +1,4 @@
-package clinicmanager.gui;
+package clinicmanager.views;
 
 import clinicmanager.controllers.PatientController;
 import clinicmanager.dao.AppointmentDAO;
